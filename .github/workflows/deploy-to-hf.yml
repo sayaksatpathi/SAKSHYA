@@ -18,6 +18,7 @@ jobs:
           lfs: true
 
       - name: Push to Hugging Face Space
+        if: ${{ secrets.HF_TOKEN != '' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -25,3 +26,7 @@ jobs:
           git config --global user.name "github-actions"
           # Force-push this repo's current commit to the Space's main branch.
           git push --force "https://Sayak-Satpathi:${HF_TOKEN}@huggingface.co/spaces/Sayak-Satpathi/sakshya-demo" HEAD:main
+
+      - name: Skip deploy if token is missing
+        if: ${{ secrets.HF_TOKEN == '' }}
+        run: echo "::warning::HF_TOKEN is not set. Skipping Hugging Face deploy."

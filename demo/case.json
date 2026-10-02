@@ -1,0 +1,18 @@
+{
+  "case_number": "DEMO-001",
+  "title": "Demo E2E Case",
+  "description": "Automated test case for end-to-end processing pipeline",
+  "investigator": "demo_user",
+  "cameras": [
+    {
+      "id": "camera_01",
+      "name": "Front Entrance",
+      "source": "demo/media/camera_01.mp4"
+    },
+    {
+      "id": "camera_02",
+      "name": "Lobby",
+      "source": "demo/media/camera_02.mp4"
+    }
+  ]
+}

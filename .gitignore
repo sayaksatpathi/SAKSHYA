@@ -37,6 +37,7 @@ storage/temp/
 
 # Models (large files)
 models/*.onnx
+models/*.weights
 models/*.pt
 models/*.pth
 models/*.caffemodel

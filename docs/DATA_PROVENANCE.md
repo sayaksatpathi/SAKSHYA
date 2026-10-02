@@ -4,7 +4,7 @@ SAKSHYA guarantees the authenticity and traceability of digital evidence through
 
 ## 1. Safe Ingestion & Isolation
 * **Sanitization:** Files uploaded are renamed using `os.path.basename` and strict character filters to prevent path traversal and shell injection vulnerabilities.
-* **Working Copy Isolation:** The original evidence file is ingested, hashed (SHA-256), and moved to an immutable `storage/` directory. All AI analyses and metadata extraction happen on this immutable reference without modifying the original bytes.
+* **Working Copy Isolation:** The original evidence file is ingested, hashed (SHA-256), and moved to an tamper-evident `storage/` directory. All AI analyses and metadata extraction happen on this tamper-evident reference without modifying the original bytes.
 
 ## 2. Event Ledger (Chain of Custody)
 Every significant operation is recorded in the `chain_events` table as an append-only ledger:

@@ -2,7 +2,7 @@ content = open('backend/api/certificates.py').read()
 replacement = '''@router.post("/certificates/{certificate_id}/sign")
 def sign_certificate(certificate_id: str, signature: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_investigator)):
     """
-    Cryptographically signs the BSA Section 63(4) certificate draft, making it legally admissible.
+    Cryptographically signs the BSA Section 63(4) certificate draft, making it designed to support forensic evidence handling.
     """
     cert = db.query(ElectronicRecordCertificate).filter(ElectronicRecordCertificate.id == certificate_id).first()
     if not cert:

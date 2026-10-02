@@ -26,7 +26,7 @@ cd frontend && npm run dev
 
 ## 6. Cryptographic Sealing & Trust
 * **Action**: Show the Merkle Tree creation for the case.
-* **Talking Point**: Explain how all evidence hashes roll up into a Merkle root, establishing an immutable state.
+* **Talking Point**: Explain how all evidence hashes roll up into a Merkle root, establishing an tamper-evident state.
 * **Action**: Trigger the Trust Receipt. Explain the independent Trust Service that signs the Merkle Root with an RSA key (mimicking an external trusted authority).
 
 ## 7. Reporting & Tamper Detection

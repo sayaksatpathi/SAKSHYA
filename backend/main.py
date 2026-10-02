@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, FileResponse
 
 from backend import SAKSHYA_VERSION
 from backend.config import settings
@@ -85,8 +86,17 @@ app.include_router(trust.router, prefix="/api", tags=["Trust"], dependencies=[De
 app.include_router(report.router, prefix="/api", tags=["Reports"], dependencies=[Depends(get_current_user)])
 app.include_router(certificates.router, prefix="/api", tags=["Certificates"])
 
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+import os
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+if os.path.exists("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+
+    @app.exception_handler(404)
+    async def custom_404_handler(request, exc):
+        if request.url.path.startswith("/api/"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        return FileResponse("frontend/dist/index.html")
 
 if __name__ == "__main__":
     import uvicorn

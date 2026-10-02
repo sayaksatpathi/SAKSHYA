@@ -40,13 +40,6 @@ services:
       - backend
     restart: unless-stopped
 
-volumes:
-  sakshya-storage:
-  sakshya-models:
-  trust-storage:
-  redis-data:
-  minio-data:
-
   redis:
     image: redis:7-alpine
     ports:
@@ -83,3 +76,10 @@ volumes:
     volumes:
       - minio-data:/data
     restart: unless-stopped
+volumes:
+  sakshya-storage:
+  sakshya-models:
+  trust-storage:
+  redis-data:
+  minio-data:
+

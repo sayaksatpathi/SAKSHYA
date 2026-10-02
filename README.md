@@ -50,7 +50,7 @@ npm run dev
 ### Evidence Workflow
 - Cases are securely segmented by case numbers.
 - Ingestion immediately calculates SHA-256 bounds.
-- All actions on evidence append an immutable event to the Chain of Custody ledger.
+- All actions on evidence append an tamper-evident event to the Chain of Custody ledger.
 
 ### AI Modes & Forensics
 - **Object Detection & Tracking**: Core capabilities are active and `VERIFIED`.
@@ -59,7 +59,7 @@ npm run dev
 - **Recovery**: Capable of basic container recovery; advanced proprietary `.dav`/`.h264` parsing is deferred.
 
 ### Integrity & Trust Architecture
-- **Ledger**: Every action logs an immutable event with a chained hash.
+- **Ledger**: Every action logs an tamper-evident event with a chained hash.
 - **Merkle Tree**: Compiles the entire ledger into a single Merkle Root.
 - **Trust Service**: An independent module that issues cryptographically verifiable receipts for the Merkle Root, anchoring it in time.
 

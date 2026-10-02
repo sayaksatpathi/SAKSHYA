@@ -38,7 +38,7 @@ Always refer to the official and current statutory text.
 
 ### SAKSHYA's Role
 SAKSHYA's core contribution is maintaining the **cryptographic integrity** of the electronic record. When a certificate draft is created:
-1. The SAKSHYA ledger records an immutable `BSA_CERTIFICATE_CREATED` event.
+1. The SAKSHYA ledger records an tamper-evident `BSA_CERTIFICATE_CREATED` event.
 2. The certificate receives a canonical `certificate_content_hash`.
 3. The certificate explicitly binds to the original `evidence_sha256` and any derived AI `analysis_hash`.
 4. The Merkle root and Trust receipts cryptographically prove the record existed in exactly that form at that time.

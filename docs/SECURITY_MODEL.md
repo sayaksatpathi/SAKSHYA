@@ -9,7 +9,7 @@ The security model of SAKSHYA ensures that evidence is cryptographically verifie
    - SHA-256 detects changes.
    - SHA-256 alone does not prevent changes.
    - SHA-256 alone does not establish authenticity.
-   - SHA-256 does not make evidence immutable.
+   - SHA-256 does not make evidence tamper-evident.
 
 2. **Provenance/History**:
    Every action (ingest, AI analysis, export) generates a `ChainEvent` on the **append-only ledger**.

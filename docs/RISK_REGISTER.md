@@ -41,7 +41,7 @@
 **Recommended future mitigation:** Implement deep binary carving and proprietary header parsing (Phase 6) specific to major Indian DVR manufacturers (Hikvision, Dahua, CP Plus).
 
 ### 7. Certificate Admissibility Status
-**Risk:** Users may mistake the SAKSHYA "BSA Section 63(4)" certificate for a legally binding, court-ready document without a human signature.
+**Risk:** Users may mistake the SAKSHYA "BSA Section 63(4)" certificate for a legally binding, certificate/report workflow document without a human signature.
 **Impact:** High (Legal).
 **Current mitigation:** The certificate is generated and explicitly labelled as a "Draft". A mandatory disclaimer notes that SAKSHYA itself does not determine legal admissibility. The signature status defaults to `UNSIGNED`.
 **Recommended future mitigation:** Integrate digital e-Sign workflows (e.g., Aadhaar eSign or DSC token integration) to allow authorized officers to cryptographically sign the draft into a legally binding certificate.

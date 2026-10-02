@@ -1,0 +1,11 @@
+{
+  "receipt_id": "de6866aa379c6be9f006835c",
+  "authority_id": "SAKSHYA-TRUST-PROTOTYPE-001",
+  "case_id": "c36fdecf-06a5-405c-bb17-a69cfa4581fb",
+  "chain_head": "a4987e71f53518d9f4dd2ad838b62f9ce7ac51547ef38df0c99733e6d1dba202",
+  "merkle_root": "e994fe121d1eea8f4dd37d188b97b682691e9e3cf1a98bea72e13ffb7cc555d2",
+  "signature": "0642d9aef0e1164290324f31d6a7c06cfa1af90d03bd73c46688042b36181d90",
+  "algorithm": "HMAC-SHA256",
+  "key_version": "v1-demo",
+  "timestamp": "2026-10-01T19:42:07.452985+00:00"
+}

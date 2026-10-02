@@ -1,17 +1,367 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SAKSHYA — Demo</title>
-<style>
-  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;
-       justify-content:center;font-family:'Segoe UI',Arial,sans-serif;background:#0e1a2b;
-       color:#eaf2ff;text-align:center;padding:24px}
-  h1{font-size:clamp(40px,9vw,64px);letter-spacing:3px;margin:0;color:#ffd27a}
-  p{color:#9fb3c8;font-size:clamp(15px,3.5vw,19px);margin:10px 0 0}
-  .tag{margin-top:20px;font-size:13px;color:#6f8aa3;letter-spacing:.04em}
-</style></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SAKSHYA — Forensic Evidence Platform</title>
+    <meta name="description" content="SAKSHYA: Vendor-Agnostic CCTV/DVR/NVR Forensic Evidence & AI Investigation Platform. Recover, Understand, Prove.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-  <h1>SAKSHYA</h1>
-  <p>Court-Ready Surveillance Evidence Platform</p>
-  <div class="tag">SIH 2026 · SIH26150 · Team Aroeminds — live demo coming soon</div>
-</body></html>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">⛊</div>
+                <div class="logo-text">
+                    <span class="logo-name">SAKSHYA</span>
+                    <span class="logo-version" id="app-version">v0.1.0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">INVESTIGATION</div>
+            <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+                <span class="nav-icon">◉</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-item" data-page="cases" onclick="navigateTo('cases')">
+                <span class="nav-icon">◫</span>
+                <span>Cases</span>
+            </a>
+            <a class="nav-item" data-page="evidence" onclick="navigateTo('evidence')">
+                <span class="nav-icon">◈</span>
+                <span>Evidence</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">AI ANALYSIS</div>
+            <a class="nav-item" data-page="ai" onclick="navigateTo('ai')">
+                <span class="nav-icon">◎</span>
+                <span>AI Investigation</span>
+            </a>
+            <a class="nav-item" data-page="timeline" onclick="navigateTo('timeline')">
+                <span class="nav-icon">◴</span>
+                <span>Timeline</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">INTEGRITY</div>
+            <a class="nav-item" data-page="integrity" onclick="navigateTo('integrity')">
+                <span class="nav-icon">◆</span>
+                <span>Chain & Merkle</span>
+            </a>
+            <a class="nav-item" data-page="trust" onclick="navigateTo('trust')">
+                <span class="nav-icon">◇</span>
+                <span>Trust Seal</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">REPORTS</div>
+            <a class="nav-item" data-page="reports" onclick="navigateTo('reports')">
+                <span class="nav-icon">◰</span>
+                <span>Reports</span>
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="system-status" id="system-status">
+                <div class="status-dot online"></div>
+                <span>System Operational</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 class="page-title" id="page-title">Dashboard</h1>
+            </div>
+            <div class="topbar-right">
+                <div class="topbar-badge" id="trust-badge">
+                    <span class="badge-dot"></span>
+                    <span>Trust Service</span>
+                </div>
+                <div class="topbar-user">
+                    <span class="user-icon">⊙</span>
+                    <span id="user-name">Demo Investigator</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content Area -->
+        <div class="page-content" id="page-content">
+
+            <!-- ====================== DASHBOARD ====================== -->
+            <div class="page" id="page-dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card" id="stat-cases">
+                        <div class="stat-icon">◫</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-cases-value">—</div>
+                            <div class="stat-label">Active Cases</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" id="stat-evidence">
+                        <div class="stat-icon">◈</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-evidence-value">—</div>
+                            <div class="stat-label">Evidence Items</div>
+                        </div>
+                    </div>
+                    <div class="stat-card accent">
+                        <div class="stat-icon">◎</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-detections-value">—</div>
+                            <div class="stat-label">AI Detections</div>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">◆</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-integrity-value">—</div>
+                            <div class="stat-label">Chain Events</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Recent Cases</h3>
+                            <button class="btn btn-sm" onclick="navigateTo('cases')">View All</button>
+                        </div>
+                        <div class="card-body" id="recent-cases">
+                            <div class="empty-state">No cases yet. Create your first case.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>System Health</h3>
+                        </div>
+                        <div class="card-body" id="system-health">
+                            <div class="health-item">
+                                <span>Backend API</span>
+                                <span class="badge badge-success" id="health-api">Checking...</span>
+                            </div>
+                            <div class="health-item">
+                                <span>Database</span>
+                                <span class="badge badge-success" id="health-db">Checking...</span>
+                            </div>
+                            <div class="health-item">
+                                <span>Trust Service</span>
+                                <span class="badge" id="health-trust">Checking...</span>
+                            </div>
+                            <div class="health-item">
+                                <span>Face Detection</span>
+                                <span class="badge" id="health-face">Checking...</span>
+                            </div>
+                            <div class="health-item">
+                                <span>Object Detection</span>
+                                <span class="badge" id="health-object">Checking...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>RECOVER → UNDERSTAND → PROVE</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="pipeline-visual">
+                            <div class="pipeline-step">
+                                <div class="pipeline-icon">⟳</div>
+                                <div class="pipeline-label">RECOVER</div>
+                                <div class="pipeline-desc">Deleted/fragmented evidence</div>
+                            </div>
+                            <div class="pipeline-arrow">→</div>
+                            <div class="pipeline-step">
+                                <div class="pipeline-icon">◎</div>
+                                <div class="pipeline-label">UNDERSTAND</div>
+                                <div class="pipeline-desc">AI-powered investigation</div>
+                            </div>
+                            <div class="pipeline-arrow">→</div>
+                            <div class="pipeline-step">
+                                <div class="pipeline-icon">◆</div>
+                                <div class="pipeline-label">PROVE</div>
+                                <div class="pipeline-desc">Cryptographic evidence chain</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====================== CASES ====================== -->
+            <div class="page hidden" id="page-cases">
+                <div class="page-actions">
+                    <button class="btn btn-primary" onclick="showCreateCase()">+ New Case</button>
+                </div>
+
+                <!-- Create Case Modal -->
+                <div class="modal hidden" id="modal-create-case">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Create New Case</h3>
+                            <button class="modal-close" onclick="hideModal('modal-create-case')">×</button>
+                        </div>
+                        <form onsubmit="createCase(event)">
+                            <div class="form-group">
+                                <label>Case Number</label>
+                                <input type="text" id="case-number" required placeholder="CASE-2026-001">
+                            </div>
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" id="case-title" required placeholder="DVR Evidence Investigation">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea id="case-description" rows="3" placeholder="Case description..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Investigator</label>
+                                <input type="text" id="case-investigator" required value="Demo Investigator">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn" onclick="hideModal('modal-create-case')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Create Case</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="cases-list" class="cases-grid">
+                    <div class="empty-state">Loading cases...</div>
+                </div>
+            </div>
+
+            <!-- ====================== EVIDENCE ====================== -->
+            <div class="page hidden" id="page-evidence">
+                <div class="page-actions">
+                    <select id="evidence-case-select" class="select" onchange="loadCaseEvidence()">
+                        <option value="">Select a case...</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="showUploadEvidence()" id="btn-upload-evidence" disabled>
+                        + Upload Evidence
+                    </button>
+                </div>
+
+                <!-- Upload Evidence Modal -->
+                <div class="modal hidden" id="modal-upload-evidence">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Upload Evidence</h3>
+                            <button class="modal-close" onclick="hideModal('modal-upload-evidence')">×</button>
+                        </div>
+                        <form onsubmit="uploadEvidence(event)">
+                            <div class="form-group">
+                                <label>Evidence File</label>
+                                <input type="file" id="evidence-file" required>
+                                <span class="form-hint">Supported: MP4, AVI, MKV, MOV, images, disk images</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Source Device</label>
+                                <input type="text" id="evidence-device" placeholder="Camera 01">
+                            </div>
+                            <div class="form-group">
+                                <label>Source Vendor</label>
+                                <input type="text" id="evidence-vendor" placeholder="Unknown" value="Unknown">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn" onclick="hideModal('modal-upload-evidence')">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="btn-upload-submit">Upload & Hash</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="evidence-list" class="evidence-grid">
+                    <div class="empty-state">Select a case to view evidence.</div>
+                </div>
+            </div>
+
+            <!-- ====================== AI INVESTIGATION ====================== -->
+            <div class="page hidden" id="page-ai">
+                <div class="page-actions">
+                    <select id="ai-case-select" class="select" onchange="loadAICase()">
+                        <option value="">Select a case...</option>
+                    </select>
+                </div>
+                <div id="ai-content">
+                    <div class="empty-state">Select a case to view AI analysis results.</div>
+                </div>
+            </div>
+
+            <!-- ====================== TIMELINE ====================== -->
+            <div class="page hidden" id="page-timeline">
+                <div class="page-actions">
+                    <select id="timeline-case-select" class="select" onchange="loadTimeline()">
+                        <option value="">Select a case...</option>
+                    </select>
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all" onclick="filterTimeline('all', this)">All</button>
+                        <button class="filter-btn" data-filter="face" onclick="filterTimeline('face', this)">Faces</button>
+                        <button class="filter-btn" data-filter="object" onclick="filterTimeline('object', this)">Objects</button>
+                        <button class="filter-btn" data-filter="plate" onclick="filterTimeline('plate', this)">Plates</button>
+                    </div>
+                </div>
+                <div id="timeline-content" class="timeline-container">
+                    <div class="empty-state">Select a case to view timeline.</div>
+                </div>
+            </div>
+
+            <!-- ====================== INTEGRITY ====================== -->
+            <div class="page hidden" id="page-integrity">
+                <div class="page-actions">
+                    <select id="integrity-case-select" class="select" onchange="loadIntegrity()">
+                        <option value="">Select a case...</option>
+                    </select>
+                </div>
+                <div id="integrity-content">
+                    <div class="empty-state">Select a case to view integrity verification.</div>
+                </div>
+            </div>
+
+            <!-- ====================== TRUST ====================== -->
+            <div class="page hidden" id="page-trust">
+                <div class="page-actions">
+                    <select id="trust-case-select" class="select" onchange="loadTrust()">
+                        <option value="">Select a case...</option>
+                    </select>
+                </div>
+                <div id="trust-content">
+                    <div class="empty-state">Select a case to view trust sealing status.</div>
+                </div>
+            </div>
+
+            <!-- ====================== REPORTS ====================== -->
+            <div class="page hidden" id="page-reports">
+                <div class="page-actions">
+                    <select id="report-case-select" class="select" onchange="loadReportCase()">
+                        <option value="">Select a case...</option>
+                    </select>
+                </div>
+                <div id="report-content">
+                    <div class="empty-state">Select a case to generate reports.</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

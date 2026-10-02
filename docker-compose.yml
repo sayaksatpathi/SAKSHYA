@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SAKSHYA_ENV=production
+      - SAKSHYA_DEBUG=false
+      - TRUST_SERVICE_URL=http://trust-service:8001
+      - DATABASE_URL=sqlite:///./storage/sakshya.db
+    volumes:
+      - sakshya-storage:/app/storage
+      - sakshya-models:/app/models
+    depends_on:
+      - trust-service
+    restart: unless-stopped
+
+  trust-service:
+    build: .
+    command: ["python", "trust_service/app.py"]
+    ports:
+      - "8001:8001"
+    environment:
+      - TRUST_HMAC_SECRET=${TRUST_HMAC_SECRET:-SAKSHYA_DEMO_TRUST_SECRET_CHANGE_IN_PRODUCTION}
+      - TRUST_AUTHORITY_ID=SAKSHYA-TRUST-PROTOTYPE-001
+      - TRUST_SERVICE_PORT=8001
+    volumes:
+      - trust-storage:/app/trust_service/storage
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  sakshya-storage:
+  sakshya-models:
+  trust-storage:
+  redis-data:
+  minio-data:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  celery_worker:
+    build: .
+    command: ["celery", "-A", "backend.celery_app.celery_app", "worker", "--loglevel=info"]
+    environment:
+      - SAKSHYA_ENV=production
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///./storage/sakshya.db
+    volumes:
+      - sakshya-storage:/app/storage
+      - sakshya-models:/app/models
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped

@@ -42,6 +42,7 @@ models/*.pth
 models/*.caffemodel
 models/*.pb
 models/*.tflite
+models/*.weights
 !models/README.md
 
 # Node

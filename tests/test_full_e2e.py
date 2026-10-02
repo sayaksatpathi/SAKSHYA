@@ -40,7 +40,7 @@ def reset_db():
     yield
     Base.metadata.drop_all(bind=engine)
 
-def test_full_e2e_pipeline_and_integrity(setup_demo_video):
+def test_complete_demo_pipeline(setup_demo_video):
     """
     Test the full E2E pipeline from case creation to report verification,
     and then verify that tampering is detected.
@@ -112,7 +112,7 @@ def test_full_e2e_pipeline_and_integrity(setup_demo_video):
     # Tamper with a ChainEvent to test ledger detection
     chain_event = db_session.query(ChainEvent).filter(ChainEvent.case_id == case_id).first()
     if chain_event:
-        # Change a field that is supposed to be immutable
+        # Change a field that is supposed to be tamper-evident
         chain_event.meta_data = {"tampered": True}
         db_session.commit()
 

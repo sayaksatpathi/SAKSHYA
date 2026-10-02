@@ -123,7 +123,7 @@ def run_demo():
         if available.get("face_detector"): models_used.append("YuNet: AVAILABLE")
         else: models_used.append("YuNet: UNAVAILABLE")
         
-        if available.get("face_recognizer"): models_used.append("SFace: AVAILABLE")
+        if available.get("face_embedding"): models_used.append("SFace: AVAILABLE")
         else: models_used.append("SFace: UNAVAILABLE")
         
         if available.get("tracker"): models_used.append("ByteTrack: AVAILABLE")

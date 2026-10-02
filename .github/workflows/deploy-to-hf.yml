@@ -23,5 +23,9 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
-          # Force-push this repo's current commit to the Space's main branch.
+          # Build a clean deploy snapshot without repo history, then force-push it.
+          git checkout --orphan hf-deploy
+          git reset --mixed
+          git add -A
+          git commit -m "Deploy snapshot"
           git push --force "https://Sayak-Satpathi:${HF_TOKEN}@huggingface.co/spaces/Sayak-Satpathi/sakshya-demo" HEAD:main

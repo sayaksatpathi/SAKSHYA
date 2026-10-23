@@ -54,14 +54,14 @@ async def health_check():
 def get_global_stats():
     """Get global system statistics."""
     from backend.database import SessionLocal
-    from backend.models import Case, Evidence, AIResult, RecoveredSegment, ForensicFinding, Camera
+    from backend.models import Case, Evidence, AIResult, EvidenceSegment, ForensicFinding, Camera
     from sqlalchemy import func
     
     db = SessionLocal()
     try:
         cases_count = db.query(func.count(Case.id)).filter(Case.status == 'OPEN').scalar() or 0
         evidence_count = db.query(func.count(Evidence.id)).scalar() or 0
-        recovery_count = db.query(func.count(RecoveredSegment.id)).scalar() or 0
+        recovery_count = db.query(func.count(EvidenceSegment.id)).scalar() or 0
         ai_count = db.query(func.count(AIResult.id)).scalar() or 0
         forensic_count = db.query(func.count(ForensicFinding.id)).scalar() or 0
         camera_count = db.query(func.count(Camera.id)).scalar() or 0

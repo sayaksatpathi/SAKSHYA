@@ -153,7 +153,7 @@ def simulate_tamper(case_id: str, db: Session = Depends(get_db)):
 @router.get("/cases/{case_id}/stats")
 def get_case_stats(case_id: str, db: Session = Depends(get_db)):
     """Get aggregated statistics for a case."""
-    from backend.models import AIResult, RecoveredSegment, ForensicFinding, Camera
+    from backend.models import AIResult, EvidenceSegment, ForensicFinding, Camera
     
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
@@ -163,7 +163,7 @@ def get_case_stats(case_id: str, db: Session = Depends(get_db)):
     evidence_count = len(evidence_ids)
     
     ai_count = db.query(func.count(AIResult.id)).filter(AIResult.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
-    recovery_count = db.query(func.count(RecoveredSegment.id)).filter(RecoveredSegment.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
+    recovery_count = db.query(func.count(EvidenceSegment.id)).filter(EvidenceSegment.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
     forensic_count = db.query(func.count(ForensicFinding.id)).filter(ForensicFinding.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
     
     # Cameras could be global or per case, but we just return total count here

@@ -325,23 +325,3 @@ def get_evidence_timeline(evidence_id: str, db: Session = Depends(get_db), curre
     return TimelineResponse(events=events, total=len(events))
 
 
-@router.get("/evidence/{evidence_id}/stream")
-async def stream_evidence(evidence_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_investigator)):
-    """Stream evidence video file."""
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
-    if not evidence:
-        raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
-    case = db.query(Case).filter(Case.id == evidence.case_id).first()
-    if current_user.role != "admin" and case and case.investigator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this case")
-
-    file_path = Path(evidence.storage_path)
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Evidence file not found on disk")
-
-    return FileResponse(
-        path=str(file_path),
-        media_type=evidence.mime_type or "video/mp4",
-        filename=evidence.original_filename,
-    )

@@ -50,7 +50,7 @@ python -m scripts.demo_run
 6. **Running AI Analysis**: Available AI models (YOLO, YuNet, Haar Cascades) perform object and face detections, emitting results for the investigator.
 7. **Building Ledger**: A cryptographic chain of custody is established across all actions.
 8. **Building Merkle Tree**: A root hash is computed based on all acquired evidence items.
-9. **Obtaining Trust Seal**: If the trust service is online, an asymmetric digital signature is requested to prove the chain state existed at this point in time, followed by independent cryptographic verification on the client side.
+9. **Obtaining Trust Seal**: If the trust service is online, an HMAC-based trust seal is requested to prove the chain state existed at this point in time, followed by independent cryptographic verification on the client side.
 10. **Generating Report**: A forensic PDF report is generated containing all findings, hashes, metadata, and the chain of custody.
 11. **Tamper Demonstration**: The script deliberately modifies the raw evidence file with malicious bytes and re-runs the integrity checker to trigger a `FAILED ALARM` and demonstrate breach detection.
 

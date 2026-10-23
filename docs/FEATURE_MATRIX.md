@@ -15,7 +15,7 @@
 | Recovery Engine | ✅ PASS | Implemented forensic recovery heuristics. |
 | **Integrity & Trust** |
 | Merkle Tree Hashing | ✅ PASS | Verifiable blockchain-style hashing of case evidence. |
-| Trust Receipt Sealing | ✅ PASS | Cryptographic signatures providing non-repudiation. |
+| Trust Receipt Sealing | ✅ PASS | HMAC-based trust seal providing cryptographic tamper-evidence. |
 | Tamper Detection | ✅ PASS | Safely identifies modifications to evidence bytes. |
 | PDF Reporting | ✅ PASS | Final report encompassing AI findings and integrity signatures. |
 

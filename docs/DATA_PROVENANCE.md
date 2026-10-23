@@ -21,7 +21,7 @@ The Merkle root is sent to an independent `trust_service` which acts as an exter
 * Merkle Root
 * Cryptographic RSA Signature
 * Authority ID
-This ensures non-repudiation; the system itself cannot forge a valid receipt without the external private key.
+This ensures cryptographic tamper-evidence; the system itself cannot forge a valid receipt without the external private key.
 
 ## 5. Verification & Tamper Detection
 When a case is finalized, the PDF Report includes the signature and hashes. 

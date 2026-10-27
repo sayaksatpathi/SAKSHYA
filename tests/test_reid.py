@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.ai.registry import model_registry
 from backend.ai.recognition.person_reid import PersonReIdentifier
+from backend.ai.registry import model_registry
 from backend.api.investigation import _cosine, _stored_embedding
-from backend.main import app
 from backend.database import Base, engine
+from backend.main import app
 
 
 @pytest.fixture(autouse=True)

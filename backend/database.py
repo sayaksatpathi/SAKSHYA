@@ -4,8 +4,9 @@ SAKSHYA Database Engine & Session Management
 Uses SQLAlchemy with SQLite as the default local database.
 """
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
 from backend.config import settings
 
 
@@ -14,12 +15,30 @@ class Base(DeclarativeBase):
     pass
 
 
-# Create engine — SQLite with WAL mode for better concurrency
+_is_sqlite = "sqlite" in settings.database_url
+
+# Create engine. SAKSHYA is a multi-threaded FastAPI app, so when running on
+# SQLite we allow cross-thread access and tune the connection for concurrency
+# (WAL journaling + a busy timeout) so concurrent readers/writers wait for a
+# lock instead of failing with "database is locked".
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
+    connect_args={"check_same_thread": False, "timeout": 30} if _is_sqlite else {},
     echo=settings.sakshya_debug and settings.sakshya_env == "development",
 )
+
+
+if _is_sqlite:
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragmas(dbapi_connection, _connection_record):
+        """Enable WAL mode and a busy timeout on every SQLite connection."""
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.execute("PRAGMA busy_timeout=30000;")
+            cursor.execute("PRAGMA synchronous=NORMAL;")
+        finally:
+            cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

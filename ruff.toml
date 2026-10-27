@@ -1,0 +1,20 @@
+# Ruff configuration for SAKSHYA
+line-length = 120
+target-version = "py312"
+
+[lint]
+# A pragmatic, high-signal rule set: pyflakes (F), pycodestyle errors (E),
+# warnings (W), and import sorting (I).
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # line length is handled by the formatter, not enforced hard
+    "E402",  # module-level imports not at top (used intentionally for env setup)
+    "E712",  # `== True/False` is valid and idiomatic in SQLAlchemy filter() clauses
+]
+
+[lint.per-file-ignores]
+# Tests may use star-imports, unused fixtures, truthiness asserts, and one-liners.
+"tests/*" = ["F401", "F811", "F841", "E402", "E701"]
+# Demo CLIs favour compact, readable one-liners over strict style.
+"scripts/*" = ["E402", "F401", "F841", "E701"]
+"sakshya/*" = ["E402", "F841", "E701"]

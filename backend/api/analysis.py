@@ -4,16 +4,17 @@ SAKSHYA AI Analysis API
 IMPORTANT: AI results are investigative aids, not definitive identifications.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
 import uuid
 from datetime import datetime, timezone
 
-from backend.config import settings
-from backend.database import get_db, SessionLocal
-from backend.models import Evidence, AIResult, Job, User, Case
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
 from backend.auth import get_current_investigator
-from backend.schemas import AIResultResponse, AIResultListResponse, JobResponse
+from backend.config import settings
+from backend.database import SessionLocal, get_db
+from backend.models import AIResult, Case, Evidence, Job, User
+from backend.schemas import AIResultListResponse, AIResultResponse, JobResponse
 from backend.services.analysis import VideoAnalysisService
 
 router = APIRouter()
@@ -24,7 +25,7 @@ def background_analyze(evidence_id: str, job_id: str, frame_sample_rate: int, de
     if not job:
         db.close()
         return
-    
+
     try:
         job.status = "PROCESSING"
         job.started_at = datetime.now(timezone.utc)
@@ -32,7 +33,7 @@ def background_analyze(evidence_id: str, job_id: str, frame_sample_rate: int, de
 
         evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
         service = VideoAnalysisService(db)
-        
+
         if settings.sakshya_ai_mode.lower() == "demo":
             results = service.generate_demo_results(evidence)
         else:
@@ -41,7 +42,7 @@ def background_analyze(evidence_id: str, job_id: str, frame_sample_rate: int, de
                 frame_sample_rate=frame_sample_rate,
                 detection_confidence=detection_confidence,
             )
-            
+
         job.status = "COMPLETED"
         job.progress = 100.0
         job.finished_at = datetime.now(timezone.utc)
@@ -70,21 +71,21 @@ def analyze_evidence_async(
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
-        
+
     # Idempotency / Deduplication check
     existing_job = db.query(Job).filter(
         Job.evidence_id == evidence_id,
         Job.job_type == "AI_ANALYSIS",
         Job.status.in_(["QUEUED", "PROCESSING"])
     ).first()
-    
+
     if existing_job:
         return JobResponse.model_validate(existing_job)
-        
+
     job_id = str(uuid.uuid4())
     job = Job(
         id=job_id,
@@ -96,7 +97,7 @@ def analyze_evidence_async(
     db.add(job)
     db.commit()
     db.refresh(job)
-    
+
     background_tasks.add_task(
         background_analyze,
         evidence_id=evidence_id,
@@ -104,7 +105,7 @@ def analyze_evidence_async(
         frame_sample_rate=frame_sample_rate,
         detection_confidence=detection_confidence
     )
-    
+
     return JobResponse.model_validate(job)
 
 
@@ -126,7 +127,7 @@ def analyze_evidence(evidence_id: str,
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")

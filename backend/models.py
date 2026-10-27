@@ -7,11 +7,22 @@ AI results, and cryptographic integrity verification.
 
 import uuid
 from datetime import datetime, timezone
+
 from sqlalchemy import (
-    Column, String, Integer, Float, Text, DateTime, Boolean,
-    ForeignKey, Index, JSON, BigInteger,
+    JSON,
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import relationship
+
 from backend.database import Base
 
 
@@ -32,7 +43,7 @@ def _utcnow() -> datetime:
 class Camera(Base):
     """A camera entity that produces evidence."""
     __tablename__ = "cameras"
-    
+
     id = Column(String(36), primary_key=True, default=_uuid)
     case_id = Column(String(36), ForeignKey("cases.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
@@ -41,7 +52,7 @@ class Camera(Base):
     timezone = Column(String(50), nullable=True)
     meta_data = Column(JSON, nullable=True)
     created_at = Column(DateTime, nullable=False, default=_utcnow)
-    
+
     case = relationship("Case")
     evidence = relationship("Evidence", back_populates="camera")
 
@@ -256,7 +267,7 @@ class TrustReceipt(Base):
 class User(Base):
     """SAKSHYA User with role-based access control."""
     __tablename__ = "users"
-    
+
     id = Column(String(36), primary_key=True, default=_uuid)
     username = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
@@ -322,48 +333,48 @@ class ElectronicRecordCertificate(Base):
     certificate_id = Column(String(100), unique=True, nullable=False, index=True)
     case_id = Column(String(36), ForeignKey("cases.id"), nullable=False, index=True)
     evidence_id = Column(String(36), ForeignKey("evidence.id"), nullable=False, index=True)
-    
+
     electronic_record_identifier = Column(String(512), nullable=False)
     electronic_record_description = Column(Text, nullable=True)
-    
+
     record_format = Column(String(100), nullable=False)
     record_size = Column(BigInteger, nullable=False)
     record_sha256 = Column(String(64), nullable=False)
-    
+
     source_device_id = Column(String(255), nullable=True, default="NOT PROVIDED")
     source_device_type = Column(String(255), nullable=True, default="NOT PROVIDED")
     source_device_description = Column(Text, nullable=True, default="NOT PROVIDED")
-    
+
     software_used = Column(String(255), nullable=True)
     software_version = Column(String(255), nullable=True)
-    
+
     date_of_acquisition = Column(DateTime, nullable=True)
     date_of_generation = Column(DateTime, nullable=False, default=_utcnow)
-    
+
     method_of_production = Column(String(255), nullable=True, default="NOT RECORDED")
     device_operational_status = Column(String(255), nullable=True, default="NOT VERIFIED")
     regular_use_context = Column(Text, nullable=True, default="NOT RECORDED")
     information_fed_in_ordinary_course = Column(Text, nullable=True, default="NOT RECORDED")
     derivation_relationship = Column(Text, nullable=True, default="NOT APPLICABLE")
-    
+
     analysis_id = Column(String(36), nullable=True)
     certificate_status = Column(String(50), nullable=False, default="REVIEW_REQUIRED")
-    
+
     signatory_name = Column(String(255), nullable=True, default="NOT PROVIDED")
     signatory_role = Column(String(255), nullable=True, default="NOT PROVIDED")
     signatory_organization = Column(String(255), nullable=True, default="NOT PROVIDED")
     signatory_address = Column(Text, nullable=True, default="NOT PROVIDED")
     signatory_contact = Column(String(255), nullable=True, default="NOT PROVIDED")
-    
+
     signature_status = Column(String(50), nullable=False, default="UNSIGNED")
     signature_method = Column(String(100), nullable=True, default="NOT APPLICABLE")
-    
+
     certificate_content_hash = Column(String(64), nullable=True)
     certificate_pdf_sha256 = Column(String(64), nullable=True)
-    
+
     created_at = Column(DateTime, nullable=False, default=_utcnow)
     updated_at = Column(DateTime, nullable=False, default=_utcnow, onupdate=_utcnow)
-    
+
     case = relationship("Case")
     evidence = relationship("Evidence")
 

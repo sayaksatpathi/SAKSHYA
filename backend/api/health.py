@@ -5,7 +5,6 @@ SAKSHYA Health Check API
 from fastapi import APIRouter
 
 from backend import SAKSHYA_VERSION
-from backend.config import settings
 from backend.schemas import HealthResponse
 
 router = APIRouter()
@@ -53,10 +52,11 @@ async def health_check():
 @router.get("/api/stats")
 def get_global_stats():
     """Get global system statistics."""
-    from backend.database import SessionLocal
-    from backend.models import Case, Evidence, AIResult, EvidenceSegment, ForensicFinding, Camera
     from sqlalchemy import func
-    
+
+    from backend.database import SessionLocal
+    from backend.models import AIResult, Camera, Case, Evidence, EvidenceSegment, ForensicFinding
+
     db = SessionLocal()
     try:
         cases_count = db.query(func.count(Case.id)).filter(Case.status == 'OPEN').scalar() or 0
@@ -65,7 +65,7 @@ def get_global_stats():
         ai_count = db.query(func.count(AIResult.id)).scalar() or 0
         forensic_count = db.query(func.count(ForensicFinding.id)).scalar() or 0
         camera_count = db.query(func.count(Camera.id)).scalar() or 0
-        
+
         return {
             "open_cases": cases_count,
             "evidence_count": evidence_count,

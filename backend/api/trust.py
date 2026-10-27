@@ -9,8 +9,7 @@ from backend.database import get_db
 from backend.models import Case, TrustReceipt
 from backend.schemas import TrustReceiptResponse, TrustVerifyResponse
 from backend.services.ledger import LedgerService
-from backend.services.trust_client import TrustClient, TrustServiceUnavailable, TrustServiceError
-from backend.config import settings
+from backend.services.trust_client import TrustClient, TrustServiceError, TrustServiceUnavailable
 
 router = APIRouter()
 

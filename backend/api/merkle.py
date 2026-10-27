@@ -5,12 +5,12 @@ SAKSHYA Merkle Tree API
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.database import get_db
-from backend.models import Case, Evidence, ChainEvent, MerkleRecord
-from backend.schemas import MerkleResponse, MerkleProofResponse, MerkleVerifyResponse
-from backend.crypto.merkle import MerkleTree
-from backend.services.ledger import LedgerService
 from backend.config import settings
+from backend.crypto.merkle import MerkleTree
+from backend.database import get_db
+from backend.models import Case, Evidence, MerkleRecord
+from backend.schemas import MerkleProofResponse, MerkleResponse, MerkleVerifyResponse
+from backend.services.ledger import LedgerService
 
 router = APIRouter()
 

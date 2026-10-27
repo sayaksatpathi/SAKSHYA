@@ -10,13 +10,28 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
 
 from backend import SAKSHYA_VERSION
+from backend.api import (
+    ai,
+    analysis,
+    auth,
+    cameras,
+    cases,
+    certificates,
+    chain,
+    evidence,
+    health,
+    investigation,
+    jobs,
+    merkle,
+    report,
+    trust,
+)
 from backend.config import settings
 from backend.database import init_db
-from backend.api import auth, cases, evidence, chain, merkle, trust, analysis, jobs, health, report, ai, investigation, cameras, certificates
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +77,8 @@ app.add_middleware(
 )
 
 from fastapi import Depends
-from backend.auth import get_current_investigator, get_current_auditor, get_current_user
+
+from backend.auth import get_current_investigator, get_current_user
 
 # --- API Routes ---
 # Public / Unauthenticated
@@ -78,7 +94,7 @@ app.include_router(ai.router, prefix="/api", tags=["AI"], dependencies=[Depends(
 app.include_router(investigation.router, prefix="/api", tags=["Investigation"], dependencies=[Depends(get_current_investigator)])
 app.include_router(cameras.router, prefix="/api", tags=["Cameras"], dependencies=[Depends(get_current_investigator)])
 
-# Auditor / Verification Routes (Admins and Investigators might also need read access depending on design, 
+# Auditor / Verification Routes (Admins and Investigators might also need read access depending on design,
 # but for SIH let's use get_current_user so anyone logged in can verify hashes)
 app.include_router(chain.router, prefix="/api", tags=["Chain of Custody"], dependencies=[Depends(get_current_user)])
 app.include_router(merkle.router, prefix="/api", tags=["Merkle Tree"], dependencies=[Depends(get_current_user)])
@@ -87,7 +103,6 @@ app.include_router(report.router, prefix="/api", tags=["Reports"], dependencies=
 app.include_router(certificates.router, prefix="/api", tags=["Certificates"])
 
 import os
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 if os.path.exists("frontend/dist"):
     app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")

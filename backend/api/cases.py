@@ -3,15 +3,14 @@ SAKSHYA Case Management API
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
+from backend.auth import get_current_investigator
 from backend.database import get_db
 from backend.models import Case, Evidence, User
-from backend.schemas import CaseCreate, CaseResponse, CaseListResponse
+from backend.schemas import CaseCreate, CaseListResponse, CaseResponse
 from backend.services.ledger import LedgerService
-from backend.config import settings
-from backend.auth import get_current_investigator
 
 router = APIRouter()
 
@@ -65,7 +64,7 @@ def list_cases(
     query = db.query(Case)
     if current_user.role != "admin":
         query = query.filter(Case.investigator_id == current_user.id)
-    
+
     if status:
         query = query.filter(Case.status == status)
 
@@ -87,7 +86,7 @@ def get_case(case_id: str, db: Session = Depends(get_db), current_user: User = D
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail=f"Case '{case_id}' not found")
-        
+
     if current_user.role != "admin" and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
 
@@ -100,21 +99,21 @@ def get_case_timeline(case_id: str, db: Session = Depends(get_db), current_user:
     """Get timeline of events for a case."""
     from backend.models import ChainEvent
     from backend.schemas import CaseTimelineEvent, CaseTimelineResponse
-    
+
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail=f"Case '{case_id}' not found")
-        
+
     if current_user.role != "admin" and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
-        
+
     events = db.query(ChainEvent).filter(ChainEvent.case_id == case_id).order_by(ChainEvent.timestamp.asc()).all()
-    
+
     timeline_events = []
     for evt in events:
         evidence_id = evt.meta_data.get("evidence_id") if evt.meta_data else None
         title = evt.event_type.replace("_", " ").title()
-        
+
         timeline_events.append(CaseTimelineEvent(
             id=evt.id,
             timestamp=evt.timestamp,
@@ -126,7 +125,7 @@ def get_case_timeline(case_id: str, db: Session = Depends(get_db), current_user:
             metadata=evt.meta_data,
             hash=evt.event_hash
         ))
-        
+
     return CaseTimelineResponse(events=timeline_events, total=len(timeline_events))
 
 @router.post("/cases/{case_id}/simulate-tamper")
@@ -135,40 +134,40 @@ def simulate_tamper(case_id: str, db: Session = Depends(get_db)):
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-        
+
     evidence = db.query(Evidence).filter(Evidence.case_id == case_id).first()
     if not evidence:
         raise HTTPException(status_code=400, detail="No evidence to tamper with")
-        
+
     import os
     file_path = evidence.storage_path
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Evidence file missing")
-        
+
     with open(file_path, "ab") as f:
         f.write(b"TAMPERED_DATA")
-        
+
     return {"message": "Evidence file tampered successfully. Run Verification to detect."}
 
 @router.get("/cases/{case_id}/stats")
 def get_case_stats(case_id: str, db: Session = Depends(get_db)):
     """Get aggregated statistics for a case."""
-    from backend.models import AIResult, EvidenceSegment, ForensicFinding, Camera
-    
+    from backend.models import AIResult, Camera, EvidenceSegment, ForensicFinding
+
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-        
+
     evidence_ids = [e.id for e in db.query(Evidence).filter(Evidence.case_id == case_id).all()]
     evidence_count = len(evidence_ids)
-    
+
     ai_count = db.query(func.count(AIResult.id)).filter(AIResult.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
     recovery_count = db.query(func.count(EvidenceSegment.id)).filter(EvidenceSegment.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
     forensic_count = db.query(func.count(ForensicFinding.id)).filter(ForensicFinding.evidence_id.in_(evidence_ids)).scalar() if evidence_count > 0 else 0
-    
+
     # Cameras could be global or per case, but we just return total count here
     camera_count = db.query(func.count(Camera.id)).scalar()
-    
+
     return {
         "evidence_count": evidence_count,
         "recovered_artifacts": recovery_count,

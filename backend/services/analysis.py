@@ -12,9 +12,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from backend.ai.engine import ai_engine
 from backend.config import settings
-from backend.models import Evidence, AIResult
-from backend.ai.engine import ai_engine, Detection
+from backend.models import AIResult, Evidence
 from backend.services.ledger import LedgerService
 
 logger = logging.getLogger(__name__)
@@ -78,11 +78,11 @@ class VideoAnalysisService:
         fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
         ai_results = []
         frame_num = 0
-        
+
         import uuid
-        from datetime import datetime, timezone
-        from backend.crypto.hashing import sha256_string, canonicalize_json
-        
+
+        from backend.crypto.hashing import canonicalize_json, sha256_string
+
         analysis_id = str(uuid.uuid4())
         start_time = datetime.now(timezone.utc).isoformat()
 
@@ -153,7 +153,7 @@ class VideoAnalysisService:
             # Create ledger event
             type_counts = {}
             end_time = datetime.now(timezone.utc).isoformat()
-            
+
             # Chain AI Results into Integrity System
             # Preferred conceptual structure: AI analysis result hash -> chain event
             ai_data_list = []
@@ -169,7 +169,7 @@ class VideoAnalysisService:
                     "track_id": r.track_id,
                     "meta_data": r.meta_data
                 })
-            
+
             # Canonical Hash of analysis result
             analysis_hash = sha256_string(canonicalize_json(ai_data_list))
 

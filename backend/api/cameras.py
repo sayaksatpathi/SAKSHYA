@@ -1,10 +1,12 @@
+from datetime import datetime
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
+
 from backend.database import get_db
 from backend.models import Camera
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
-from datetime import datetime
 
 router = APIRouter()
 
@@ -21,7 +23,7 @@ class CameraResponse(BaseModel):
     source: Optional[str] = None
     timezone: str
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 @router.get("/cameras", response_model=List[CameraResponse])

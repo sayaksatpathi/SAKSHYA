@@ -5,12 +5,13 @@ SAKSHYA Vendor-Agnostic Extension Architecture for DVR Parsers.
 from abc import ABC, abstractmethod
 from typing import Optional
 
+
 class DVRParser(ABC):
     """Abstract base class for all DVR parsers."""
     @abstractmethod
     def identify(self, data: bytes) -> bool:
         pass
-        
+
     @abstractmethod
     def parse(self, data: bytes) -> Optional[dict]:
         pass
@@ -19,7 +20,7 @@ class GenericVideoParser(DVRParser):
     def identify(self, data: bytes) -> bool:
         # Standard generic headers (e.g., MP4)
         return b"ftyp" in data[:1024]
-        
+
     def parse(self, data: bytes) -> Optional[dict]:
         return {"vendor": "Generic", "status": "VALIDATED"}
 
@@ -29,27 +30,27 @@ class VendorParserInterface(DVRParser):
 class HikvisionParser(VendorParserInterface):
     def identify(self, data: bytes) -> bool:
         return b"HKVS" in data[:1024]
-        
+
     def parse(self, data: bytes) -> Optional[dict]:
         return {"vendor": "Hikvision", "status": "PARTIAL"}
 
 class DahuaParser(VendorParserInterface):
     def identify(self, data: bytes) -> bool:
         return b"DHAV" in data[:1024]
-        
+
     def parse(self, data: bytes) -> Optional[dict]:
         return {"vendor": "Dahua", "status": "PARTIAL"}
 
 class FutureVendorParser(VendorParserInterface):
     def identify(self, data: bytes) -> bool:
         return False
-        
+
     def parse(self, data: bytes) -> Optional[dict]:
         return {"vendor": "Future", "status": "UNSUPPORTED_VENDOR_FORMAT"}
 
+import logging
 import os
 import subprocess
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class ProprietaryDVRParser:
     """
     def __init__(self, workspace: str):
         self.workspace = workspace
-        
+
     def recover_dav(self, input_path: str, output_path: str) -> bool:
         """
         Uses FFmpeg to re-mux .dav (Dahua/CP Plus) to .mp4 without transcoding.
@@ -68,12 +69,12 @@ class ProprietaryDVRParser:
         """
         if not os.path.exists(input_path):
             return False
-            
+
         try:
             # ffmpeg -i input.dav -c:v copy -c:a copy output.mp4
             cmd = [
-                "ffmpeg", "-y", "-i", input_path, 
-                "-c:v", "copy", "-c:a", "copy", 
+                "ffmpeg", "-y", "-i", input_path,
+                "-c:v", "copy", "-c:a", "copy",
                 output_path
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)

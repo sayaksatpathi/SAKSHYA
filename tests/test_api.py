@@ -7,8 +7,8 @@ Tests for FastAPI endpoints: cases, evidence, chain, merkle, trust.
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.main import app
 from backend.database import Base, engine
+from backend.main import app
 
 
 @pytest.fixture(autouse=True)

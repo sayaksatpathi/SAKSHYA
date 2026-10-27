@@ -1,6 +1,6 @@
 import os
+
 from celery import Celery
-from backend.config import settings
 
 # Initialize Celery app
 # In production, use a durable broker like Redis or RabbitMQ
@@ -32,7 +32,7 @@ def analyze_evidence_task(self, evidence_id: str, options: dict = None):
     """
     from backend.database import SessionLocal
     from backend.services.analysis import AnalysisService
-    
+
     db = SessionLocal()
     try:
         service = AnalysisService(db)

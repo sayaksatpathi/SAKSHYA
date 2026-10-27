@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from backend.ai.registry import model_registry
 
 router = APIRouter()

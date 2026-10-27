@@ -1,7 +1,8 @@
 import logging
-import numpy as np
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class FaceRecognizer:
             face_crop = frame[max(0, y):y+h, max(0, x):x+w]
             if face_crop.size == 0:
                 return None
-            
+
             # SFace expects 112x112 aligned face. For MVP we'll just resize.
             import cv2
             aligned = cv2.resize(face_crop, (112, 112))

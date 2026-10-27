@@ -1,10 +1,12 @@
-import pytest
-from fastapi.testclient import TestClient
 import io
 import json
 
-from backend.main import app
+import pytest
+from fastapi.testclient import TestClient
+
 from backend.database import Base, engine
+from backend.main import app
+
 
 @pytest.fixture(autouse=True)
 def reset_db():
@@ -49,7 +51,7 @@ class TestVideoStreaming:
         resp = client.get(f"/api/evidence/{evidence_id}/stream", headers=headers)
         assert resp.status_code == 206
         assert resp.content == b"video data "
-        
+
     def test_stream_invalid_evidence(self, client):
         resp = client.get("/api/evidence/nonexistent-id/stream")
         assert resp.status_code == 404
@@ -62,7 +64,7 @@ class TestTimeline:
             "investigator": "Test",
         })
         case_id = resp.json()["id"]
-        
+
         # Test timeline has case creation event
         resp = client.get(f"/api/cases/{case_id}/timeline")
         print(resp.json() if resp.status_code != 200 else resp.content)
@@ -70,7 +72,7 @@ class TestTimeline:
         data = resp.json()
         assert data["total"] >= 1
         assert any(e["type"] == "CASE_CREATED" for e in data["events"])
-        
+
         # Add evidence
         test_content = b"fake video data"
         resp = client.post(
@@ -78,7 +80,7 @@ class TestTimeline:
             files={"file": ("test.mp4", io.BytesIO(test_content), "video/mp4")},
             data={"evidence_type": "video"},
         )
-        
+
         # Check timeline again
         resp = client.get(f"/api/cases/{case_id}/timeline")
         data = resp.json()
@@ -92,14 +94,14 @@ class TestReportsAndTrust:
             "investigator": "Test",
         })
         case_id = resp.json()["id"]
-        
+
         resp = client.post(f"/api/cases/{case_id}/report")
         print(resp.json() if resp.status_code != 200 else resp.content)
         assert resp.status_code == 200
         data = resp.json()
         assert "download_url" in data
         assert "sha256" in data
-        
+
         # Test download
         resp = client.get(data["download_url"])
         print(resp.json() if resp.status_code != 200 else resp.content)

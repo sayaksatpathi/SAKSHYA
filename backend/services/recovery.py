@@ -9,15 +9,14 @@ import logging
 import os
 import struct
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from backend.config import settings
-from backend.models import Evidence, EvidenceSegment
 from backend.crypto.hashing import sha256_file
+from backend.models import Evidence, EvidenceSegment
 from backend.services.ledger import LedgerService
 
 logger = logging.getLogger(__name__)
@@ -376,10 +375,10 @@ class Validator(RecoveryStrategy):
     """Validates structural integrity of recovered candidates."""
     def name(self) -> str:
         return "Validator"
-    
+
     def can_handle(self, evidence: Evidence) -> bool:
         return True
-        
+
     def recover(self, evidence: Evidence, output_dir: Path, db: Session) -> list[dict[str, Any]]:
         # In a real system, this would scan the file and return validation results.
         # We simulate it for testing.
@@ -389,10 +388,10 @@ class MetadataRecovery(RecoveryStrategy):
     """Attempts to recover filesystem or container metadata."""
     def name(self) -> str:
         return "MetadataRecovery"
-    
+
     def can_handle(self, evidence: Evidence) -> bool:
         return True
-        
+
     def recover(self, evidence: Evidence, output_dir: Path, db: Session) -> list[dict[str, Any]]:
         return []
 

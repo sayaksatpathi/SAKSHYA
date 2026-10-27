@@ -1,5 +1,7 @@
 import pytest
-from backend.services.parsers import GenericVideoParser, HikvisionParser, DahuaParser, FutureVendorParser
+
+from backend.services.parsers import DahuaParser, FutureVendorParser, GenericVideoParser, HikvisionParser
+
 
 def test_generic_parser():
     parser = GenericVideoParser()

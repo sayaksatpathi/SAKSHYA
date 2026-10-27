@@ -1,6 +1,7 @@
 import logging
+
 import numpy as np
-from typing import Optional
+
 from backend.ai.engine import Detection
 
 logger = logging.getLogger(__name__)

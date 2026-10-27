@@ -9,17 +9,21 @@ and chain of custody.
 import io
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from backend import SAKSHYA_VERSION
+from backend.crypto.hashing import sha256_bytes
 from backend.models import (
-    Case, Evidence, EvidenceSegment, AIResult,
-    ChainEvent, MerkleRecord, TrustReceipt,
+    AIResult,
+    Case,
+    ChainEvent,
+    Evidence,
+    EvidenceSegment,
+    MerkleRecord,
+    TrustReceipt,
 )
 from backend.services.ledger import LedgerService
-from backend.crypto.hashing import sha256_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +42,18 @@ class ReportService:
             PDF content as bytes.
         """
         try:
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib.colors import HexColor
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.lib.units import mm
             from reportlab.platypus import (
-                SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
                 PageBreak,
+                Paragraph,
+                SimpleDocTemplate,
+                Spacer,
+                Table,
+                TableStyle,
             )
-            from reportlab.lib.units import inch, mm
-            from reportlab.lib.enums import TA_CENTER, TA_LEFT
         except ImportError:
             logger.error("reportlab not installed — cannot generate PDF")
             raise RuntimeError("PDF generation requires reportlab. Install with: pip install reportlab")
@@ -246,8 +253,8 @@ class ReportService:
                 for f in forensics:
                     time_str = f"{f.timestamp_start:.1f}s" if f.timestamp_start is not None else "N/A"
                     for_data.append([
-                        time_str, f.type, f.severity, 
-                        f.description[:40] + "..." if len(f.description) > 40 else f.description, 
+                        time_str, f.type, f.severity,
+                        f.description[:40] + "..." if len(f.description) > 40 else f.description,
                         f.method
                     ])
                 t = Table(for_data, colWidths=[50, 80, 60, 160, 80])
@@ -335,18 +342,18 @@ class ReportService:
         from backend.models import ElectronicRecordCertificate
         for ev in evidence_items:
             cert = self.db.query(ElectronicRecordCertificate).filter(ElectronicRecordCertificate.evidence_id == ev.id).order_by(ElectronicRecordCertificate.created_at.desc()).first()
-            
+
             elements.append(Paragraph(f"<b>Certificate for Evidence: {ev.original_filename}</b>", subheading_style))
             elements.append(Spacer(1, 6))
-            
+
             if not cert:
                 elements.append(Paragraph("<i>No Electronic Record Certificate drafted for this evidence yet.</i>", normal))
                 elements.append(Spacer(1, 20))
                 continue
-                
+
             elements.append(Paragraph(f"<b>STATUS:</b> <font color='red'>{cert.certificate_status}</font> (SAKSHYA-GENERATED DRAFT)", normal))
             elements.append(Spacer(1, 6))
-            
+
             cert_body = f"""
             <b>A. Case and Record Identification</b><br/>
             <b>Case ID:</b> {cert.case_id}<br/>
@@ -356,7 +363,7 @@ class ReportService:
             <b>Format:</b> {cert.record_format}<br/>
             <b>Size:</b> {cert.record_size} bytes<br/>
             <b>SHA-256:</b> {cert.record_sha256}<br/><br/>
-            
+
             <b>B. Acquisition / Production</b><br/>
             <b>Acquisition Date:</b> {cert.date_of_acquisition or "NOT PROVIDED"}<br/>
             <b>Generation Date:</b> {cert.date_of_generation}<br/>
@@ -365,22 +372,22 @@ class ReportService:
             <b>Source Device ID:</b> {cert.source_device_id or "NOT PROVIDED"}<br/>
             <b>Source Device Type:</b> {cert.source_device_type or "NOT PROVIDED"}<br/>
             <b>Source Description:</b> {cert.source_device_description or "NOT PROVIDED"}<br/><br/>
-            
+
             <b>C. Relevant Section 63(2) Information</b><br/>
             <b>Device Operational Status:</b> {cert.device_operational_status or "NOT VERIFIED"}<br/>
             &nbsp;&nbsp;<i>Basis: SAKSHYA software cannot physically verify hardware condition.</i><br/>
             <b>Regular Use Context:</b> {cert.regular_use_context or "NOT RECORDED"}<br/>
             <b>Information Fed in Ordinary Course:</b> {cert.information_fed_in_ordinary_course or "NOT RECORDED"}<br/><br/>
-            
+
             <b>D. Analysis / Derivation</b><br/>
             <b>Analysis ID:</b> {cert.analysis_id or "NOT APPLICABLE"}<br/>
             <b>Derivation Relationship:</b> {cert.derivation_relationship or "Original Evidence"}<br/><br/>
-            
+
             <b>E. Integrity</b><br/>
             <b>Evidence SHA-256:</b> {cert.record_sha256}<br/>
             <b>Certificate Content Hash:</b> {cert.certificate_content_hash or "NOT CALCULATED"}<br/>
             <i>Chain state and Merkle root verified in preceding sections.</i><br/><br/>
-            
+
             <b>F. Declarant / Signatory</b><br/>
             <b>Name:</b> {cert.signatory_name or "___________________________"}<br/>
             <b>Role/Designation:</b> {cert.signatory_role or "___________________________"}<br/>

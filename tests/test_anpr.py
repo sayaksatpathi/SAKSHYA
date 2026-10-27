@@ -1,6 +1,8 @@
-import pytest
 import numpy as np
+import pytest
+
 from backend.ai.ocr.plate_ocr import PlateOCR
+
 
 def test_anpr():
     ocr = PlateOCR()
@@ -8,7 +10,7 @@ def test_anpr():
         pytest.skip("EasyOCR not installed, skipping ANPR test")
 
     # Generate a synthetic plate image
-    # Note: testing EasyOCR might actually download its model! 
+    # Note: testing EasyOCR might actually download its model!
     # For a deterministic offline test, we might mock it if needed.
     import cv2
     img = np.zeros((100, 300, 3), dtype=np.uint8)
@@ -16,7 +18,7 @@ def test_anpr():
 
     plate_box = [0, 0, 300, 100]
     result = ocr.recognize(img, plate_box)
-    
+
     # We might not get exactly MH12AB1234 due to synthesis, but it should return something
     assert result is not None, "OCR should return a result"
     assert "raw_text" in result
@@ -26,7 +28,7 @@ def test_anpr():
     # Test normalization
     assert " " not in result["normalized_text"]
     assert "-" not in result["normalized_text"]
-    
+
     # Test no plate
     blank_img = np.zeros((100, 300, 3), dtype=np.uint8)
     blank_result = ocr.recognize(blank_img, plate_box)

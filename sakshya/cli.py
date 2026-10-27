@@ -1,11 +1,9 @@
-import sys
+import argparse
+import logging
 import os
 import time
-import json
-import logging
-import argparse
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 # Ensure we use an isolated in-memory or fresh demo DB to avoid messing with real data
 os.environ["SAKSHYA_DB_URL"] = "sqlite:///demo_db.sqlite"
@@ -14,17 +12,15 @@ os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"
 # Suppress debug logs
 logging.basicConfig(level=logging.WARNING)
 
-from backend.database import SessionLocal, Base, engine
+from backend.ai.engine import ai_engine
+from backend.api.merkle import build_merkle_tree
+from backend.database import Base
 from backend.models import Case, Evidence
 from backend.services.acquisition import AcquisitionService
 from backend.services.analysis import VideoAnalysisService
 from backend.services.ledger import LedgerService
-from backend.crypto.merkle import MerkleTree
-from backend.api.merkle import build_merkle_tree
 from backend.services.report import ReportService
-from backend.ai.engine import ai_engine
-from trust_service.app import verify_signature
-from backend.config import settings
+
 
 def print_step(step_num: int, total_steps: int, name: str, status: str):
     print(f"[{step_num}/{total_steps}] {name:<30} {status}")
@@ -36,18 +32,18 @@ def run_demo():
 
     if os.path.exists("demo_db.sqlite"):
         os.remove("demo_db.sqlite")
-    
+
     from sqlalchemy import create_engine
     demo_engine = create_engine("sqlite:///demo_db.sqlite")
     Base.metadata.create_all(bind=demo_engine)
-    
+
     from sqlalchemy.orm import sessionmaker
     DemoSession = sessionmaker(autocommit=False, autoflush=False, bind=demo_engine)
     db = DemoSession()
 
     TOTAL_STEPS = 13
     start_time = time.time()
-    
+
     try:
         # Preparation: Case creation
         print_step(1, TOTAL_STEPS, "CREATE CASE", "OK")
@@ -60,7 +56,7 @@ def run_demo():
         db.add(case)
         db.commit()
         db.refresh(case)
-        
+
         ledger = LedgerService(db)
         ledger.append_event(case.id, "CASE_CREATED", "Demo User", meta_data={"title": case.title})
 
@@ -69,7 +65,7 @@ def run_demo():
         if not video_path.exists():
             print_step(2, TOTAL_STEPS, "INGEST EVIDENCE", "FAILED (Missing demo/media/camera_01.mp4)")
             return
-            
+
         acq_service = AcquisitionService(db)
         with open(video_path, "rb") as f:
             evidence = acq_service.ingest_file(
@@ -105,27 +101,27 @@ def run_demo():
 
         # 6. RUN FORENSIC ANALYSIS
         print_step(6, TOTAL_STEPS, "RUN FORENSIC ANALYSIS", "OK")
-        
+
         # Init AI
         ai_engine.initialize("models")
         available = ai_engine.available_models()
-        
+
         # 7. RUN AI PIPELINE
         analysis_service = VideoAnalysisService(db)
         ai_results = analysis_service.analyze(evidence, frame_sample_rate=25)
         has_detections = len(ai_results) > 0
         has_tracks = any(r.track_id is not None for r in ai_results)
-        
+
         models_used = []
         if available.get("object_detector"): models_used.append("YOLO: AVAILABLE")
         else: models_used.append("YOLO: UNAVAILABLE")
-        
+
         if available.get("face_detector"): models_used.append("YuNet: AVAILABLE")
         else: models_used.append("YuNet: UNAVAILABLE")
-        
+
         if available.get("face_embedding"): models_used.append("SFace: AVAILABLE")
         else: models_used.append("SFace: UNAVAILABLE")
-        
+
         if available.get("tracker"): models_used.append("ByteTrack: AVAILABLE")
         else: models_used.append("ByteTrack: UNAVAILABLE")
 
@@ -143,12 +139,13 @@ def run_demo():
 
         # 11. REQUEST TRUST SEAL
         import asyncio
+
         from backend.services.trust_client import TrustClient
         try:
             trust_client = TrustClient()
             chain_head = ledger.get_chain_head(case.id) or "0"*64
             receipt_data = asyncio.run(trust_client.sign(chain_head=chain_head, case_id=case.id, merkle_root=merkle_root.root_hash if merkle_root else None))
-            
+
             # Save receipt in db
             from backend.models import TrustReceipt
             receipt = TrustReceipt(
@@ -196,7 +193,7 @@ def run_demo():
         report_path = f"demo/reports/report_{case.id}.pdf"
         with open(report_path, "wb") as f:
             f.write(report_bytes)
-            
+
         if os.path.exists(report_path):
             print_step(13, TOTAL_STEPS, "GENERATE REPORT", "OK")
         else:
@@ -213,31 +210,31 @@ def run_tamper():
     print("\n=======================================================")
     print(" SAKSHYA — TAMPER DEMONSTRATION")
     print("=======================================================\n")
-    
+
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
     if not os.path.exists("demo_db.sqlite"):
         print("Error: Run demo-run first to generate a database.")
         return
-        
+
     demo_engine = create_engine("sqlite:///demo_db.sqlite")
     DemoSession = sessionmaker(autocommit=False, autoflush=False, bind=demo_engine)
     db = DemoSession()
-    
+
     try:
         evidence = db.query(Evidence).first()
         if not evidence:
             print("Error: No evidence found.")
             return
-            
+
         print(f"Targeting Evidence ID: {evidence.id}")
         file_path = Path(evidence.storage_path)
-        
+
         # Tamper it!
         print("Tampering with evidence file...")
         with open(file_path, "a") as f:
             f.write("TAMPERED")
-            
+
         print("Running Integrity Check...")
         try:
             acq_service = AcquisitionService(db)
@@ -248,10 +245,10 @@ def run_tamper():
                 print("HASH: FAILED (MISMATCH DETECTED - Expected Behavior)")
         except Exception as e:
             print(f"HASH: FAILED ({e})")
-                
+
         print("CHAIN: FAILED (Dependent nodes invalid)")
         print("TRUST RECEIPT: INVALID (for changed manifest/evidence state)")
-        
+
     finally:
         db.close()
 
@@ -259,7 +256,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SAKSHYA CLI")
     parser.add_argument("command", choices=["demo-run", "demo-tamper"], help="Command to execute")
     args = parser.parse_args()
-    
+
     if args.command == "demo-run":
         run_demo()
     elif args.command == "demo-tamper":

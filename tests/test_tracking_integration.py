@@ -6,8 +6,9 @@ Verifies the IOUTracker-Stub correctly:
 2. Persists track IDs across frames for nearby objects
 3. Creates new IDs for objects that appear in new locations
 """
-import pytest
 import numpy as np
+import pytest
+
 from backend.ai.engine import Detection, ai_engine
 from backend.ai.tracking.bytetrack import Tracker
 
@@ -15,7 +16,7 @@ from backend.ai.tracking.bytetrack import Tracker
 def test_tracker_assigns_ids():
     """Tracker assigns unique IDs to detections with bounding boxes."""
     tracker = Tracker()
-    
+
     # Synthetic detections at known positions
     dets = [
         Detection(
@@ -31,13 +32,13 @@ def test_tracker_assigns_ids():
             meta_data={}
         ),
     ]
-    
+
     dummy_frame = np.zeros((416, 416, 3), dtype=np.uint8)
     result = tracker.update(dets, dummy_frame)
-    
+
     assert len(result) == 2
     assert all(d.track_id is not None for d in result), "Tracker must assign IDs"
-    
+
     ids = {d.track_id for d in result}
     assert len(ids) == 2, "Each distinct object should get a unique track ID"
 
@@ -46,7 +47,7 @@ def test_tracker_persists_ids_across_frames():
     """Same object at similar position across frames keeps the same track ID."""
     tracker = Tracker()
     dummy_frame = np.zeros((416, 416, 3), dtype=np.uint8)
-    
+
     # Frame 0: object at (100, 100)
     dets_f0 = [
         Detection(
@@ -58,7 +59,7 @@ def test_tracker_persists_ids_across_frames():
     ]
     result_f0 = tracker.update(dets_f0, dummy_frame)
     tid_f0 = result_f0[0].track_id
-    
+
     # Frame 1: object at (110, 105) — moved slightly
     dets_f1 = [
         Detection(
@@ -70,7 +71,7 @@ def test_tracker_persists_ids_across_frames():
     ]
     result_f1 = tracker.update(dets_f1, dummy_frame)
     tid_f1 = result_f1[0].track_id
-    
+
     assert tid_f0 == tid_f1, (
         f"Same object moved slightly should keep the same track ID. "
         f"Got {tid_f0} → {tid_f1}"
@@ -81,7 +82,7 @@ def test_tracker_new_id_for_distant_object():
     """An object far from any existing track gets a new ID."""
     tracker = Tracker()
     dummy_frame = np.zeros((416, 416, 3), dtype=np.uint8)
-    
+
     # Frame 0: object at (100, 100)
     dets_f0 = [
         Detection(
@@ -93,7 +94,7 @@ def test_tracker_new_id_for_distant_object():
     ]
     result_f0 = tracker.update(dets_f0, dummy_frame)
     tid_f0 = result_f0[0].track_id
-    
+
     # Frame 1: completely different position (500, 500) — new object
     dets_f1 = [
         Detection(
@@ -105,7 +106,7 @@ def test_tracker_new_id_for_distant_object():
     ]
     result_f1 = tracker.update(dets_f1, dummy_frame)
     tid_f1 = result_f1[0].track_id
-    
+
     assert tid_f0 != tid_f1, (
         f"Distant object should get a new track ID. Got {tid_f0} for both."
     )
@@ -121,24 +122,25 @@ def test_tracking_with_real_detector():
         pytest.skip("YOLO object detector unavailable")
     if not ai_engine._tracker.is_available():
         pytest.skip("Tracker unavailable")
-    
-    import cv2
+
     from pathlib import Path
-    
+
+    import cv2
+
     video_path = Path("demo/media/demo_video.mp4")
     if not video_path.exists():
         pytest.skip("Demo video not found")
-    
+
     cap = cv2.VideoCapture(str(video_path))
     assert cap.isOpened()
-    
+
     ret, frame = cap.read()
     cap.release()
     assert ret, "Failed to read frame"
-    
+
     dets = ai_engine._object_detector.detect(frame)
     tracked = ai_engine._tracker.update(dets, frame)
-    
+
     # This is informational — synthetic video may yield zero detections
     if len(tracked) == 0:
         # NO_DETECTIONS is a valid outcome for synthetic video

@@ -1,6 +1,7 @@
 import logging
-import numpy as np
 from typing import Optional
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -33,23 +34,23 @@ class PlateOCR:
     def recognize(self, frame: np.ndarray, plate_box: list[int]) -> Optional[dict]:
         if not self._available:
             return None
-        
+
         try:
             x, y, w, h = plate_box
             crop = frame[max(0, y):y+h, max(0, x):x+w]
             if crop.size == 0:
                 return None
-            
+
             result = self._reader.readtext(crop)
             if result:
                 # result is a list of [bbox, text, prob]
                 best_match = max(result, key=lambda r: r[2])
                 raw_text = best_match[1]
                 prob = float(best_match[2])
-                
+
                 # normalization
                 norm = raw_text.upper().replace(" ", "").replace("-", "")
-                
+
                 return {
                     "raw_text": raw_text,
                     "normalized_text": norm,

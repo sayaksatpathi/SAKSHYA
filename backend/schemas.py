@@ -5,7 +5,8 @@ Defines request/response models for the REST API.
 """
 
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 # =============================================================================
@@ -27,7 +28,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 
@@ -397,7 +398,7 @@ class ElectronicRecordCertificateResponse(BaseModel):
     certificate_pdf_sha256: Optional[str]
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 class CertificateVerifyResponse(BaseModel):

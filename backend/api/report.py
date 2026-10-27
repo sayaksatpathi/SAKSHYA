@@ -33,22 +33,23 @@ def generate_report(case_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=503, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-        
-    import hashlib
+
     import datetime
+    import hashlib
     pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
-    
+
     # Save the PDF to disk in the case's storage directory
-    from backend.config import settings
     from pathlib import Path
+
+    from backend.config import settings
     case_dir = Path(settings.evidence_storage_path) / case.id
     case_dir.mkdir(parents=True, exist_ok=True)
     report_path = case_dir / "report.pdf"
-    
+
     with open(report_path, "wb") as f:
         f.write(pdf_bytes)
 
-    # We return the metadata. 
+    # We return the metadata.
     return {
         "id": case.id, # Using case ID as report ID for simplicity
         "case_id": case.id,
@@ -61,13 +62,14 @@ def generate_report(case_id: str, db: Session = Depends(get_db)):
 @router.get("/reports/{report_id}")
 def download_report(report_id: str):
     """Download the generated report."""
-    from backend.config import settings
     from pathlib import Path
-    
+
+    from backend.config import settings
+
     report_path = Path(settings.evidence_storage_path) / report_id / "report.pdf"
     if not report_path.exists():
         raise HTTPException(status_code=404, detail="Report not found")
-        
+
     return Response(
         content=report_path.read_bytes(),
         media_type="application/pdf",

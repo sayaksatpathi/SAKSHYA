@@ -7,14 +7,17 @@ Merkle tree, and trust signatures.
 
 import hashlib
 import json
+
 import pytest
 
 from backend.crypto.hashing import (
-    sha256_bytes, sha256_string, sha256_file,
-    canonicalize_json, hash_event,
+    canonicalize_json,
+    hash_event,
+    sha256_bytes,
+    sha256_file,
+    sha256_string,
 )
 from backend.crypto.merkle import MerkleTree, build_merkle_root
-
 
 # =============================================================================
 # SHA-256 Tests

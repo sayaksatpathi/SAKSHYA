@@ -5,13 +5,14 @@ Face search, plate search, and unified investigator query.
 All searches query actual persisted AI results — never fabricated.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
-from sqlalchemy.orm import Session
-import numpy as np
 import logging
 
+import numpy as np
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from sqlalchemy.orm import Session
+
 from backend.database import get_db
-from backend.models import Evidence, AIResult
+from backend.models import AIResult, Evidence
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

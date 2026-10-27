@@ -6,21 +6,21 @@ Computes SHA-256, extracts meta_data via FFprobe, and creates
 a tamper-evident working reference.
 """
 
+import json
 import logging
 import mimetypes
 import os
 import shutil
 import subprocess
-import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Any, BinaryIO
+from typing import Any, BinaryIO, Optional
 
 from sqlalchemy.orm import Session
 
 from backend.config import settings
+from backend.crypto.hashing import sha256_file
 from backend.models import Evidence
-from backend.crypto.hashing import sha256_file, sha256_stream
 from backend.services.ledger import LedgerService
 
 logger = logging.getLogger(__name__)

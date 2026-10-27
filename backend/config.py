@@ -5,10 +5,10 @@ Loads settings from environment variables with sensible defaults.
 All secrets and configurable paths are externalized here.
 """
 
-import os
 from pathlib import Path
-from pydantic_settings import BaseSettings
+
 from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

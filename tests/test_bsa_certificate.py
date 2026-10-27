@@ -1,14 +1,16 @@
+import hashlib
+import json
+from datetime import datetime, timezone
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-import json
-import hashlib
 
-from backend.main import app
-from backend.database import SessionLocal, engine, Base
-from backend.models import Case, Evidence, ElectronicRecordCertificate, ChainEvent, User
 from backend.crypto.hashing import sha256_bytes
+from backend.database import Base, SessionLocal, engine
+from backend.main import app
+from backend.models import Case, ChainEvent, ElectronicRecordCertificate, Evidence, User
+
 
 @pytest.fixture(scope="function", autouse=True)
 def setup_teardown():
@@ -20,18 +22,18 @@ def setup_teardown():
 def mock_investigator(monkeypatch):
     """Mock the auth dependency to bypass JWT checking for tests."""
     from backend.auth import get_current_investigator, get_current_user
-    
+
     dummy_user = User(
-        id="u1", 
-        username="test_investigator", 
-        role="investigator", 
-        hashed_password="xxx", 
+        id="u1",
+        username="test_investigator",
+        role="investigator",
+        hashed_password="xxx",
         is_active=True
     )
-    
+
     app.dependency_overrides[get_current_investigator] = lambda: dummy_user
     app.dependency_overrides[get_current_user] = lambda: dummy_user
-    
+
     yield dummy_user
     app.dependency_overrides.clear()
 
@@ -43,7 +45,7 @@ def test_certificate_creation(mock_investigator):
     db.add(c)
     db.add(e)
     db.commit()
-    
+
     # 1. Test creation
     payload = {
         "evidence_id": "e1",
@@ -53,24 +55,24 @@ def test_certificate_creation(mock_investigator):
     res = client.post("/api/cases/c1/certificates", json=payload)
     assert res.status_code == 200, res.text
     cert = res.json()
-    
+
     assert cert["case_id"] == "c1"
     assert cert["evidence_id"] == "e1"
     assert cert["electronic_record_identifier"] == "VID-001"
     assert cert["record_format"] == "video"
     assert cert["record_size"] == 1024
     assert cert["record_sha256"] == "abc123hash"
-    
+
     # Unknown values handling
     assert cert["device_operational_status"] == "NOT VERIFIED"
     assert cert["regular_use_context"] == "NOT RECORDED"
     assert cert["method_of_production"] == "NOT RECORDED"
     assert cert["signatory_name"] == "NOT PROVIDED"
-    
+
     # Signature remains unsigned/review required
     assert cert["certificate_status"] == "REVIEW_REQUIRED"
     assert cert["signature_status"] == "UNSIGNED"
-    
+
     # Check Ledger
     event = db.query(ChainEvent).filter(ChainEvent.event_type == "BSA_CERTIFICATE_CREATED").first()
     assert event is not None
@@ -78,12 +80,12 @@ def test_certificate_creation(mock_investigator):
     assert event.evidence_id == "e1"
     assert event.meta_data["payload_hash"] == cert["certificate_content_hash"]
     assert event.meta_data["certificate_id"] == cert["certificate_id"]
-    
+
     # 2. Test fetching
     res2 = client.get(f"/api/certificates/{cert['certificate_id']}")
     assert res2.status_code == 200
     assert res2.json()["certificate_id"] == cert["certificate_id"]
-    
+
     db.close()
 
 def test_certificate_verification(mock_investigator):
@@ -94,41 +96,41 @@ def test_certificate_verification(mock_investigator):
     db.add(c)
     db.add(e)
     db.commit()
-    
+
     res = client.post("/api/cases/c2/certificates", json={
         "evidence_id": "e2",
         "electronic_record_identifier": "VID-002"
     })
     cert_id = res.json()["certificate_id"]
-    
+
     # Verify valid
     ver = client.get(f"/api/certificates/{cert_id}/verify").json()
     assert ver["certificate_exists"] is True
     assert ver["certificate_content_hash_valid"] is True
     assert ver["evidence_hash_matches"] is True
     assert ver["overall_integrity_status"] == "CONSISTENT"
-    
+
     # Tamper certificate content hash
     cert_obj = db.query(ElectronicRecordCertificate).filter_by(certificate_id=cert_id).first()
     cert_obj.certificate_content_hash = "fakehash"
     db.commit()
-    
+
     ver2 = client.get(f"/api/certificates/{cert_id}/verify").json()
     assert ver2["certificate_content_hash_valid"] is False
     assert ver2["overall_integrity_status"] == "INVALID"
-    
+
     # Tamper evidence hash
     cert_obj.certificate_content_hash = res.json()["certificate_content_hash"] # restore
     db.commit()
-    
+
     e_obj = db.query(Evidence).filter_by(id="e2").first()
     e_obj.sha256 = "tamperedhash"
     db.commit()
-    
+
     ver3 = client.get(f"/api/certificates/{cert_id}/verify").json()
     assert ver3["evidence_hash_matches"] is False
     assert ver3["overall_integrity_status"] == "INVALID"
-    
+
     db.close()
 
 def test_pdf_generation_with_certificate(mock_investigator):
@@ -139,23 +141,24 @@ def test_pdf_generation_with_certificate(mock_investigator):
     db.add(c)
     db.add(e)
     db.commit()
-    
+
     # Create certificate
     res = client.post("/api/cases/c3/certificates", json={
         "evidence_id": "e3",
         "electronic_record_identifier": "VID-003"
     })
     cert = res.json()
-    
+
     # Generate report
     rep = client.post("/api/cases/c3/report")
     assert rep.status_code == 200
-    
-    from backend.config import settings
+
     from pathlib import Path
+
+    from backend.config import settings
     pdf_path = Path(settings.evidence_storage_path) / "c3" / "report.pdf"
     assert pdf_path.exists()
-    
+
     # Verify PDF content by trying to extract text
     try:
         import PyPDF2
@@ -173,5 +176,5 @@ def test_pdf_generation_with_certificate(mock_investigator):
             assert "REVIEW_REQUIRED" in text
     except ImportError:
         pass # If PyPDF2 is not installed in the environment, we skip the text check, but pdf generated.
-    
+
     db.close()

@@ -1,15 +1,13 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
 
+from backend.auth import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_password_hash, verify_password
 from backend.database import get_db
 from backend.models import User
-from backend.auth import (
-    create_access_token, get_password_hash,
-    ACCESS_TOKEN_EXPIRE_MINUTES, verify_password
-)
-from backend.schemas import UserCreate, UserResponse, Token
+from backend.schemas import Token, UserCreate, UserResponse
 
 router = APIRouter()
 
@@ -33,13 +31,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
-    
+
     hashed_password = get_password_hash(user.password)
-    
+
     # SECURITY: Prevent privilege escalation. Public registration always creates 'investigator'.
     # Admin creation must be handled via a secure bootstrap script.
     forced_role = "investigator"
-    
+
     new_user = User(
         username=user.username,
         hashed_password=hashed_password,

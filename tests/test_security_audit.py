@@ -5,23 +5,25 @@ Tests for modifications, tampering, and trust authority invalidation
 as requested by the security audit.
 """
 
-import pytest
-import os
 import json
+import os
 from datetime import datetime, timezone
+
+import pytest
 from fastapi.testclient import TestClient
 
-from backend.main import app
+from backend.crypto.hashing import canonicalize_json, sha256_string
 from backend.database import Base, engine, get_db
-from backend.models import Case, Evidence, ChainEvent, MerkleRecord, TrustReceipt
-from backend.crypto.hashing import sha256_string, canonicalize_json
+from backend.main import app
+from backend.models import Case, ChainEvent, Evidence, MerkleRecord, TrustReceipt
 from backend.services.ledger import LedgerService
 from backend.services.trust_client import TrustClient
 
 client = TestClient(app)
 
 # We use the actual trust service functions for testing signing logic without http overhead
-from trust_service.app import compute_signature, TRUST_KEY_VERSION
+from trust_service.app import TRUST_KEY_VERSION, compute_signature
+
 
 @pytest.fixture(autouse=True)
 def reset_db():
@@ -68,7 +70,7 @@ def test_modified_evidence_detection():
     ev.sha256 = "tampered_hash"
     db.commit()
 
-    # The actual file would have "original_hash". Here we just verify that 
+    # The actual file would have "original_hash". Here we just verify that
     # if we check it, it would fail. (In our system, evidence verification happens
     # when processing or exporting).
     assert ev.sha256 != "original_hash"
@@ -77,7 +79,7 @@ def test_modified_evidence_detection():
 def test_modified_ledger_detection():
     db = next(get_db())
     ledger = LedgerService(db)
-    
+
     case = Case(case_number="TEST-02", title="Test", investigator="Tester")
     db.add(case)
     db.commit()
@@ -103,23 +105,23 @@ def test_modified_merkle_root_detection():
     # In SAKSHYA, Merkle roots are built over chain events and evidence hashes.
     # The client can re-compute the Merkle root to verify.
     # Here we just verify the route `/api/cases/{case_id}/merkle-verify` fails if tampered.
-    
+
     # Needs at least one evidence to build a root
     ev = Evidence(case_id=case.id, filename="test.mp4", original_filename="test.mp4", size=1, sha256="hash", storage_path="")
     db.add(ev)
     db.commit()
-    
+
     # Call the API to build the tree
     resp = client.post(f"/api/cases/{case.id}/merkle")
     assert resp.status_code == 201
     record_id = resp.json()["id"]
     original_root = resp.json()["root_hash"]
-    
+
     # Tamper the root in the database directly
     record = db.query(MerkleRecord).filter(MerkleRecord.id == record_id).first()
     record.root_hash = "fake_root_hash"
     db.commit()
-    
+
     # Verify using API
     verify_resp = client.post(f"/api/cases/{case.id}/merkle/{record_id}/verify")
     assert verify_resp.status_code == 200
@@ -149,7 +151,7 @@ def test_invalid_trust_signature():
     db.add(receipt)
     db.commit()
 
-    from trust_service.app import verify_signature, VerifyRequest
+    from trust_service.app import VerifyRequest, verify_signature
     canonical_payload = {
         "algorithm": "HMAC-SHA256",
         "authority_key_id": TRUST_KEY_VERSION,
@@ -167,10 +169,10 @@ def test_wrong_case_id_trust_receipt():
     # If a receipt was signed for case A but attached to case B, the canonical payload changes
     chain_head = "0" * 64
     ts = datetime.now(timezone.utc).isoformat()
-    
+
     # Signed for CASE_A
     signature, _ = _sign_canonical("CASE_A", chain_head, timestamp=ts)
-    
+
     # Attempt to verify for CASE_B
     canonical_payload_b = {
         "algorithm": "HMAC-SHA256",
@@ -182,7 +184,7 @@ def test_wrong_case_id_trust_receipt():
         "timestamp": ts,
     }
     sign_data_b = json.dumps(canonical_payload_b, separators=(",", ":"), sort_keys=True)
-    
+
     from trust_service.app import verify_signature
     assert verify_signature(sign_data_b, signature) is False
 
@@ -190,10 +192,10 @@ def test_wrong_case_id_trust_receipt():
 def test_wrong_manifest_hash_trust_receipt():
     chain_head = "0" * 64
     ts = datetime.now(timezone.utc).isoformat()
-    
+
     # Signed with no manifest hash
     signature, _ = _sign_canonical("CASE_C", chain_head, timestamp=ts, manifest_hash=None)
-    
+
     # Attempt to verify with a manifest hash
     canonical_payload = {
         "algorithm": "HMAC-SHA256",
@@ -205,7 +207,7 @@ def test_wrong_manifest_hash_trust_receipt():
         "timestamp": ts,
     }
     sign_data = json.dumps(canonical_payload, separators=(",", ":"), sort_keys=True)
-    
+
     from trust_service.app import verify_signature
     assert verify_signature(sign_data, signature) is False
 
@@ -213,9 +215,9 @@ def test_wrong_manifest_hash_trust_receipt():
 def test_changed_timestamp_trust_receipt():
     chain_head = "0" * 64
     ts = datetime.now(timezone.utc).isoformat()
-    
+
     signature, _ = _sign_canonical("CASE_D", chain_head, timestamp=ts)
-    
+
     # Attempt to verify with tampered timestamp (a completely different string)
     fake_ts = "2099-01-01T00:00:00+00:00"
     canonical_payload = {
@@ -228,7 +230,7 @@ def test_changed_timestamp_trust_receipt():
         "timestamp": fake_ts,
     }
     sign_data = json.dumps(canonical_payload, separators=(",", ":"), sort_keys=True)
-    
+
     from trust_service.app import verify_signature
     assert verify_signature(sign_data, signature) is False
 
@@ -236,9 +238,9 @@ def test_changed_timestamp_trust_receipt():
 def test_changed_chain_head_trust_receipt():
     chain_head = "0" * 64
     ts = datetime.now(timezone.utc).isoformat()
-    
+
     signature, _ = _sign_canonical("CASE_E", chain_head, timestamp=ts)
-    
+
     # Attempt to verify with tampered chain head
     fake_chain_head = "1" * 64
     canonical_payload = {
@@ -251,6 +253,6 @@ def test_changed_chain_head_trust_receipt():
         "timestamp": ts,
     }
     sign_data = json.dumps(canonical_payload, separators=(",", ":"), sort_keys=True)
-    
+
     from trust_service.app import verify_signature
     assert verify_signature(sign_data, signature) is False

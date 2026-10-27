@@ -5,10 +5,12 @@ Verifies that the AI engine computes and embeds the actual SHA-256
 of the model weights file into every detection's metadata — not a
 hardcoded placeholder.
 """
-import pytest
 import hashlib
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import pytest
+
 from backend.ai.engine import ai_engine
 
 
@@ -43,5 +45,5 @@ def test_yolov4_tiny_provenance():
     # But if it does produce detections, every one must have the correct hash.
     for det in detections:
         assert det.meta_data.get("model_sha256") == actual_hash, (
-            f"Detection metadata hash mismatch"
+            "Detection metadata hash mismatch"
         )

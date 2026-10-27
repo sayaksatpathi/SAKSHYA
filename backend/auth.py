@@ -2,15 +2,15 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from jose import JWTError, jwt, ExpiredSignatureError
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import ExpiredSignatureError, JWTError, jwt
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from backend.config import settings
 from backend.database import get_db
 from backend.models import User
-from backend.config import settings
 
 # In production, require an explicit secret key
 _env_secret = os.getenv("SAKSHYA_SECRET_KEY")
@@ -64,7 +64,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         )
     except JWTError:
         raise credentials_exception
-        
+
     user = db.query(User).filter(User.username == username, User.is_active == True).first()
     if user is None:
         raise credentials_exception

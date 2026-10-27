@@ -10,6 +10,7 @@ to provide an independent trust anchor.
 
 import logging
 from typing import Optional
+
 import httpx
 
 from backend.config import settings
@@ -105,7 +106,7 @@ class TrustClient:
         except httpx.ConnectError:
             logger.warning("Trust service unavailable at %s", self.base_url)
             raise TrustServiceUnavailable(
-                f"Trust service unavailable. TRUST SEAL: NOT AVAILABLE"
+                "Trust service unavailable. TRUST SEAL: NOT AVAILABLE"
             )
         except Exception as e:
             logger.error("Trust verification error: %s", e)

@@ -2,23 +2,26 @@
 SAKSHYA Evidence API
 """
 
-import io
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 from pathlib import Path
 
-from backend.database import get_db
-from backend.models import Case, Evidence, EvidenceSegment, AIResult, User
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 from backend.auth import get_current_investigator
+from backend.database import get_db
+from backend.models import AIResult, Case, Evidence, EvidenceSegment, User
 from backend.schemas import (
-    EvidenceResponse, EvidenceListResponse, SegmentResponse,
-    TimelineEvent, TimelineResponse, ForensicFindingResponse
+    EvidenceListResponse,
+    EvidenceResponse,
+    ForensicFindingResponse,
+    SegmentResponse,
+    TimelineEvent,
+    TimelineResponse,
 )
 from backend.services.acquisition import AcquisitionService
 from backend.services.recovery import RecoveryEngine
-from backend.crypto.hashing import sha256_file
 
 router = APIRouter()
 
@@ -53,7 +56,7 @@ async def upload_evidence(
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail=f"Case '{case_id}' not found")
-        
+
     if current_user.role != "admin" and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
 
@@ -98,7 +101,7 @@ def get_evidence(evidence_id: str, db: Session = Depends(get_db), current_user: 
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
@@ -124,7 +127,7 @@ def stream_evidence(
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
@@ -132,18 +135,18 @@ def stream_evidence(
     file_path = Path(evidence.storage_path)
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="Evidence file not found on disk")
-        
+
     # Prevent path traversal
     file_size = file_path.stat().st_size
     mime_type = evidence.mime_type or "video/mp4"
-    
+
     range_header = request.headers.get("Range")
     if range_header:
         import re
         match = re.match(r"bytes=(\d+)-(\d*)", range_header)
         if not match:
             raise HTTPException(status_code=400, detail="Invalid Range header")
-            
+
         byte1 = int(match.group(1))
         byte2 = match.group(2)
         if byte2:
@@ -171,12 +174,12 @@ def stream_evidence(
             "Content-Length": str(length),
         }
         return StreamingResponse(
-            file_iterator(byte1, length), 
-            status_code=206, 
-            headers=headers, 
+            file_iterator(byte1, length),
+            status_code=206,
+            headers=headers,
             media_type=mime_type
         )
-    
+
     headers = {
         "Accept-Ranges": "bytes",
         "Content-Length": str(file_size),
@@ -187,9 +190,9 @@ def stream_evidence(
                 yield chunk
 
     return StreamingResponse(
-        full_file_iterator(), 
-        status_code=200, 
-        headers=headers, 
+        full_file_iterator(),
+        status_code=200,
+        headers=headers,
         media_type=mime_type
     )
 
@@ -201,7 +204,7 @@ def verify_evidence(evidence_id: str, db: Session = Depends(get_db), current_use
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
@@ -227,7 +230,7 @@ def recover_evidence(evidence_id: str,
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
@@ -242,18 +245,18 @@ def recover_evidence(evidence_id: str,
 def run_video_forensics(evidence_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_investigator)):
     """Run frame-level video forensics on evidence."""
     from backend.services.forensics import VideoForensicsService
-    
+
     evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found")
-        
+
     case = db.query(Case).filter(Case.id == evidence.case_id).first()
     if current_user.role != "admin" and case and case.investigator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this case")
 
     service = VideoForensicsService(db)
     findings = service.analyze_evidence(evidence)
-    
+
     if findings:
         from backend.services.ledger import LedgerService
         ledger = LedgerService(db)

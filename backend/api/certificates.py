@@ -1,27 +1,28 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-import uuid
-import json
 import hashlib
+import json
+import uuid
 from datetime import datetime, timezone
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from backend.auth import get_current_investigator, get_current_user
 from backend.database import get_db
 from backend.models import (
-    ElectronicRecordCertificate,
-    Case,
-    Evidence,
     AIResult,
+    Case,
     ChainEvent,
+    ElectronicRecordCertificate,
+    Evidence,
     MerkleRecord,
     TrustReceipt,
-    User
+    User,
 )
 from backend.schemas import (
+    CertificateVerifyResponse,
     ElectronicRecordCertificateCreate,
     ElectronicRecordCertificateResponse,
-    CertificateVerifyResponse
 )
-from backend.auth import get_current_investigator, get_current_user
 
 router = APIRouter()
 
@@ -73,24 +74,24 @@ def create_certificate(
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-        
+
     evidence = db.query(Evidence).filter(Evidence.id == cert_in.evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail="Evidence not found")
-        
+
     if evidence.case_id != case_id:
         raise HTTPException(status_code=400, detail="Evidence does not belong to the case")
 
     # Hashes consistency
     evidence_hash = evidence.sha256
-    
+
     analysis = db.query(AIResult).filter(AIResult.evidence_id == evidence.id).first()
     analysis_id = analysis.id if analysis else None
 
     from backend.config import settings
-    
+
     cert_id = f"CERT-{uuid.uuid4().hex[:8].upper()}"
-    
+
     cert = ElectronicRecordCertificate(
         certificate_id=cert_id,
         case_id=case_id,
@@ -121,20 +122,20 @@ def create_certificate(
         signatory_contact=cert_in.signatory_contact,
         signature_status="UNSIGNED"
     )
-    
+
     # Calculate hash BEFORE saving
     cert_data = get_certificate_canonical_dict(cert)
     cert.certificate_content_hash = canonical_hash(cert_data)
-    
+
     db.add(cert)
-    
+
     # Create a ledger event for the certificate
     from backend.services.ledger import LedgerService
     try:
         ledger = LedgerService(db)
         merkle = db.query(MerkleRecord).filter(MerkleRecord.case_id == case_id).order_by(MerkleRecord.created_at.desc()).first()
         merkle_root = merkle.root_hash if merkle else None
-        
+
         ledger.append_event(
             case_id=case_id,
             evidence_id=evidence.id,
@@ -165,7 +166,7 @@ def list_certificates(
     case = db.query(Case).filter(Case.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-        
+
     certs = db.query(ElectronicRecordCertificate).filter(ElectronicRecordCertificate.case_id == case_id).all()
     return certs
 
@@ -199,32 +200,32 @@ def verify_certificate(
             signature_status="NOT APPLICABLE",
             overall_integrity_status="NOT VERIFIED"
         )
-        
+
     cert_data = get_certificate_canonical_dict(cert)
     computed_hash = canonical_hash(cert_data)
-    
+
     hash_valid = (computed_hash == cert.certificate_content_hash)
-    
+
     evidence = db.query(Evidence).filter(Evidence.id == cert.evidence_id).first()
     evidence_matches = (evidence is not None and evidence.sha256 == cert.record_sha256)
-    
+
     # Check analysis matches (if an analysis_id exists)
     analysis_matches = True
     if cert.analysis_id and cert.analysis_id != "NOT APPLICABLE":
         analysis = db.query(AIResult).filter(AIResult.id == cert.analysis_id).first()
         if not analysis:
             analysis_matches = False
-            
+
     # Check Merkle & Trust from Ledger
     merkle_matches = True
     trust_valid = True
-    
+
     event = db.query(ChainEvent).filter(
         ChainEvent.case_id == cert.case_id,
         ChainEvent.event_type == "BSA_CERTIFICATE_CREATED",
         ChainEvent.payload_hash == cert.certificate_content_hash
     ).first()
-    
+
     if event and event.meta_data:
         merkle_root = event.meta_data.get("merkle_root")
         if merkle_root:
@@ -234,7 +235,7 @@ def verify_certificate(
             ).first()
             if not stored_merkle:
                 merkle_matches = False
-            
+
             # Check trust
             trust = db.query(TrustReceipt).filter(TrustReceipt.chain_head == event.event_hash).first()
             if not trust:
@@ -245,11 +246,11 @@ def verify_certificate(
 
     # A mock check for report hash match (since report PDF hash generation is separate)
     report_hash_matches = True if cert.certificate_pdf_sha256 else False
-    
+
     overall = "VALID" if (hash_valid and evidence_matches and analysis_matches and merkle_matches) else "INVALID"
     if overall == "VALID" and cert.certificate_status == "REVIEW_REQUIRED":
         overall = "CONSISTENT"
-        
+
     return CertificateVerifyResponse(
         certificate_exists=True,
         certificate_content_hash_valid=hash_valid,
@@ -270,7 +271,7 @@ def sign_certificate(certificate_id: str, signature: str, db: Session = Depends(
     cert = db.query(ElectronicRecordCertificate).filter(ElectronicRecordCertificate.id == certificate_id).first()
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
-    
+
     cert.signature = signature
     cert.signed_by = current_user.username
     db.commit()

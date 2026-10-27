@@ -1,11 +1,14 @@
 import pytest
+
 from backend.models import Evidence, ForensicFinding
 from backend.services.forensics import VideoForensicsService
 
+
 def test_video_forensics():
     from unittest.mock import MagicMock
+
     from backend.models import Evidence
-    
+
     db_session = MagicMock()
     ev = Evidence(
         case_id="fake_case",
@@ -18,8 +21,8 @@ def test_video_forensics():
     )
     db_session.add(ev)
     db_session.commit()
-    
+
     service = VideoForensicsService(db_session)
     findings = service.analyze_evidence(ev)
-    
+
     assert len(findings) == 0, "Should return no findings for missing file"

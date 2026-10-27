@@ -1,9 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+
+from backend.auth import get_current_auditor, get_current_investigator, get_current_user
+from backend.database import Base, SessionLocal, engine
 from backend.main import app
-from backend.auth import get_current_user, get_current_investigator, get_current_auditor
 from backend.models import User
-from backend.database import Base, engine, SessionLocal
+
 
 @pytest.fixture(autouse=True)
 def reset_db_conftest():

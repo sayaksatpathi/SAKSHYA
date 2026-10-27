@@ -2,12 +2,14 @@
 SAKSHYA Video Forensics Service
 """
 
-import logging
-from sqlalchemy.orm import Session
-from backend.models import Evidence, ForensicFinding
-import subprocess
 import json
+import logging
 import os
+import subprocess
+
+from sqlalchemy.orm import Session
+
+from backend.models import Evidence, ForensicFinding
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +31,14 @@ class VideoForensicsService:
         # Run ffprobe to get frame-level information
         # We need packet/frame timestamps
         cmd = [
-            "ffprobe", 
-            "-v", "quiet", 
-            "-select_streams", "v:0", 
-            "-show_entries", "frame=pkt_pts_time,pkt_size,pict_type", 
-            "-of", "json", 
+            "ffprobe",
+            "-v", "quiet",
+            "-select_streams", "v:0",
+            "-show_entries", "frame=pkt_pts_time,pkt_size,pict_type",
+            "-of", "json",
             evidence.storage_path
         ]
-        
+
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             data = json.loads(result.stdout)
@@ -50,15 +52,15 @@ class VideoForensicsService:
 
         fps = evidence.fps or 25.0
         expected_delta = 1.0 / fps
-        
+
         # 1. Timestamp discontinuities
         # 2. Duplicate frames (same pkt_size over multiple frames could indicate duplication)
-        
+
         prev_time = None
         prev_size = None
         duplicate_start_frame = None
         duplicate_count = 0
-        
+
         for i, frame in enumerate(frames):
             try:
                 curr_time_str = frame.get("pkt_pts_time")
@@ -66,7 +68,7 @@ class VideoForensicsService:
                     continue
                 curr_time = float(curr_time_str)
                 curr_size = frame.get("pkt_size")
-                
+
                 # Check timestamps
                 if prev_time is not None:
                     delta = curr_time - prev_time

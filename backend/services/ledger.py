@@ -8,13 +8,13 @@ ordered, tamper-evident log.
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import Any, Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from backend.models import ChainEvent
 from backend.crypto.hashing import canonicalize_json, sha256_string
+from backend.models import ChainEvent
 
 logger = logging.getLogger(__name__)
 

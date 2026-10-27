@@ -2,10 +2,11 @@
 SAKSHYA AI Interfaces
 """
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+
 import numpy as np
 
 from backend.ai.engine import Detection
+
 
 class BaseDetector(ABC):
     """Abstract base for all AI detectors."""

@@ -10,7 +10,7 @@ IMPORTANT: AI outputs are investigative aids, not facts of identity.
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Any, Optional
 
 import numpy as np
 
@@ -212,7 +212,7 @@ class ObjectDetector(BaseDetector):
                 )
                 self._model.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
                 self._model.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
-                
+
                 # Calculate actual hash of model file for provenance
                 import hashlib
                 sha256 = hashlib.sha256()
@@ -220,7 +220,7 @@ class ObjectDetector(BaseDetector):
                     for chunk in iter(lambda: f.read(4096), b""):
                         sha256.update(chunk)
                 self._model_sha256 = sha256.hexdigest()
-                
+
                 self._available = True
                 logger.info("YOLO object detector loaded (SHA256: %s)", self._model_sha256)
             else:
@@ -398,11 +398,11 @@ class AIEngine:
             config_path=str(base / "yolov4-tiny.cfg"),
         )
         self._plate_detector = PlateDetector()
-        
-        from backend.ai.tracking.bytetrack import Tracker
+
+        from backend.ai.ocr.plate_ocr import PlateOCR
         from backend.ai.recognition.face_embedding import FaceRecognizer
         from backend.ai.recognition.person_reid import PersonReIdentifier
-        from backend.ai.ocr.plate_ocr import PlateOCR
+        from backend.ai.tracking.bytetrack import Tracker
 
         self._tracker = Tracker()
         self._face_recognizer = FaceRecognizer(
@@ -468,11 +468,11 @@ class AIEngine:
                     results.extend(detector.detect(frame, **kwargs))
                 except Exception as e:
                     logger.error("Detector %s failed: %s", detector.name(), e)
-                    
+
         # Apply Tracking
         if self._tracker and self._tracker.is_available():
             results = self._tracker.update(results, frame)
-            
+
         # Apply OCR to plates
         if self._plate_ocr and self._plate_ocr.is_available():
             for d in results:
@@ -481,7 +481,7 @@ class AIEngine:
                     if ocr_res:
                         d.label = ocr_res["normalized_text"]
                         d.meta_data.update(ocr_res)
-                        
+
         # Apply Face Embeddings
         if self._face_recognizer and self._face_recognizer.is_available():
             for d in results:

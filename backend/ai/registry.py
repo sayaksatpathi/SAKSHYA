@@ -102,10 +102,10 @@ model_registry.register(ModelInfo(
 model_registry.register(ModelInfo(
     model_id="reid",
     name="OSNet",
-    version="1.0",
+    version="osnet_x1_0-onnx",
     task="reid",
-    framework="pytorch",
-    path="models/osnet_x1_0.pth",
+    framework="opencv-dnn",
+    path="models/osnet_x1_0.onnx",
     sha256="",
     license="MIT",
     source="torchreid",

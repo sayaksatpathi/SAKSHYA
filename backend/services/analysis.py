@@ -114,6 +114,17 @@ class VideoAnalysisService:
                         det.frame_number = frame_num
                         det.timestamp = timestamp
 
+                        # Persist the appearance/identity embedding (face or person
+                        # Re-ID) inside meta_data so downstream search endpoints can
+                        # compare it. Stored as a plain list for JSON serialisation.
+                        meta_data = dict(det.meta_data) if det.meta_data else {}
+                        if getattr(det, "embedding", None) is not None:
+                            import numpy as _np
+
+                            meta_data["embedding"] = _np.asarray(
+                                det.embedding, dtype=_np.float32
+                            ).flatten().tolist()
+
                         result = AIResult(
                             evidence_id=evidence.id,
                             frame_number=frame_num,
@@ -125,7 +136,7 @@ class VideoAnalysisService:
                             track_id=det.track_id,
                             model_name=det.model_name,
                             model_version=det.model_version,
-                            meta_data=det.meta_data if det.meta_data else None,
+                            meta_data=meta_data if meta_data else None,
                         )
                         self.db.add(result)
                         ai_results.append(result)

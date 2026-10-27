@@ -383,6 +383,7 @@ class AIEngine:
         self._tracker = None
         self._face_recognizer = None
         self._plate_ocr = None
+        self._reid = None
         self._initialized = False
 
     def initialize(self, model_base_path: str = "./models") -> None:
@@ -400,14 +401,18 @@ class AIEngine:
         
         from backend.ai.tracking.bytetrack import Tracker
         from backend.ai.recognition.face_embedding import FaceRecognizer
+        from backend.ai.recognition.person_reid import PersonReIdentifier
         from backend.ai.ocr.plate_ocr import PlateOCR
-        
+
         self._tracker = Tracker()
         self._face_recognizer = FaceRecognizer(
             model_path=str(base / "face_recognition_sface_2021dec.onnx")
         )
+        self._reid = PersonReIdentifier(
+            model_path=str(base / "osnet_x1_0.onnx")
+        )
         self._plate_ocr = PlateOCR()
-        
+
         # Update registry status
         from backend.ai.registry import model_registry
         model_registry.update_status("face_detector", "AVAILABLE" if self._face_detector.is_available() else "UNAVAILABLE")
@@ -416,6 +421,7 @@ class AIEngine:
         model_registry.update_status("tracker", "AVAILABLE" if self._tracker.is_available() else "UNAVAILABLE")
         model_registry.update_status("face_embedding", "AVAILABLE" if self._face_recognizer.is_available() else "UNAVAILABLE")
         model_registry.update_status("plate_ocr", "AVAILABLE" if self._plate_ocr.is_available() else "UNAVAILABLE")
+        model_registry.update_status("reid", "AVAILABLE" if self._reid.is_available() else "UNAVAILABLE")
 
         self._initialized = True
 
@@ -446,6 +452,7 @@ class AIEngine:
             "tracker": self._tracker.is_available() if self._tracker else False,
             "face_embedding": self._face_recognizer.is_available() if self._face_recognizer else False,
             "plate_ocr": self._plate_ocr.is_available() if self._plate_ocr else False,
+            "reid": self._reid.is_available() if self._reid else False,
         }
 
     def version(self) -> str:
@@ -483,7 +490,18 @@ class AIEngine:
                     if emb is not None:
                         # Convert to list for JSON serialization downstream or keep as ndarray
                         d.embedding = emb
-                        
+
+        # Apply Person Re-ID Embeddings (cross-camera appearance signature)
+        if self._reid and self._reid.is_available():
+            for d in results:
+                is_person = d.detection_type == "person" or (
+                    d.detection_type == "object" and (d.label or "").lower() == "person"
+                )
+                if is_person and d.bounding_box:
+                    emb = self._reid.compute_embedding(frame, d.bounding_box)
+                    if emb is not None:
+                        d.embedding = emb
+
         return results
 
 

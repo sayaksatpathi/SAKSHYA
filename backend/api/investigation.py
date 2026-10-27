@@ -17,6 +17,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _stored_embedding(result: AIResult) -> np.ndarray | None:
+    """Extract a persisted detection embedding, if present.
+
+    Embeddings are stored as a plain list under ``meta_data["embedding"]`` at
+    analysis time. Older rows may carry a JSON list in ``embedding_reference``.
+    """
+    meta = result.meta_data or {}
+    raw = meta.get("embedding") if isinstance(meta, dict) else None
+    if raw is None:
+        raw = result.embedding_reference
+    if raw is None:
+        return None
+    try:
+        arr = np.asarray(raw, dtype=np.float32).flatten()
+        return arr if arr.size else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+    denom = float(np.linalg.norm(a) * np.linalg.norm(b)) + 1e-8
+    return float(np.dot(a.flatten(), b.flatten()) / denom)
+
+
 @router.post("/investigation/face-search")
 async def face_search(
     case_id: str,
@@ -82,25 +106,24 @@ async def face_search(
     # 5. Compare embeddings (brute-force cosine similarity)
     candidates = []
     for r in face_results:
-        if r.embedding_reference:
-            try:
-                stored_emb = np.array(r.embedding_reference, dtype=np.float32)
-                similarity = float(np.dot(ref_embedding.flatten(), stored_emb.flatten()) / (
-                    np.linalg.norm(ref_embedding) * np.linalg.norm(stored_emb) + 1e-8
-                ))
-                if similarity > 0.3:  # Low threshold to surface candidates
-                    candidates.append({
-                        "candidate_id": r.id,
-                        "evidence_id": r.evidence_id,
-                        "timestamp": r.timestamp,
-                        "similarity": round(similarity, 4),
-                        "frame": r.frame_number,
-                        "confidence": r.confidence,
-                        "status": "POSSIBLE_MATCH",
-                        "note": "Similarity-based candidate. Does not independently establish identity.",
-                    })
-            except Exception as e:
-                logger.warning("Embedding comparison failed for %s: %s", r.id, e)
+        stored_emb = _stored_embedding(r)
+        if stored_emb is None:
+            continue
+        try:
+            similarity = _cosine(ref_embedding, stored_emb)
+            if similarity > 0.3:  # Low threshold to surface candidates
+                candidates.append({
+                    "candidate_id": r.id,
+                    "evidence_id": r.evidence_id,
+                    "timestamp": r.timestamp,
+                    "similarity": round(similarity, 4),
+                    "frame": r.frame_number,
+                    "confidence": r.confidence,
+                    "status": "POSSIBLE_MATCH",
+                    "note": "Similarity-based candidate. Does not independently establish identity.",
+                })
+        except Exception as e:
+            logger.warning("Embedding comparison failed for %s: %s", r.id, e)
 
     candidates.sort(key=lambda c: c["similarity"], reverse=True)
     return candidates[:50]
@@ -198,16 +221,111 @@ def investigation_search(
                 "track_id": r.track_id,
             })
 
+    matches.sort(key=lambda m: (m.get("confidence") or 0), reverse=True)
+    return {"results": matches, "query": q, "case_id": case_id, "count": len(matches)}
+
+
+def _is_person(result: AIResult) -> bool:
+    if result.detection_type == "person":
+        return True
+    return result.detection_type == "object" and (result.label or "").lower() == "person"
+
+
 @router.post("/investigation/cross-camera-search")
 def cross_camera_search(
     case_id: str,
     track_id: str = Query(..., description="Source track ID to search for"),
     evidence_id: str = Query(..., description="Source evidence ID"),
+    threshold: float = Query(0.5, ge=0.0, le=1.0, description="Minimum cosine similarity"),
     db: Session = Depends(get_db),
 ):
     """
-    Search for a person track across other cameras in the case.
+    Search for a person track across other cameras (evidence items) in the case
+    using OSNet appearance embeddings.
+
+    The source track's person embeddings are averaged into a query signature and
+    compared (cosine similarity) against person detections in *other* evidence
+    items. Results are labelled POSSIBLE_MATCH — appearance similarity does not
+    independently establish identity.
     """
     from backend.ai.engine import ai_engine
-    # Since OSNet is not implemented, we must return UNAVAILABLE
-    raise HTTPException(status_code=503, detail="AI STATUS: MODEL UNAVAILABLE — Cross-camera Re-ID model (OSNet) not loaded")
+
+    # Honesty contract: never fabricate matches when the model is not loaded.
+    if not ai_engine._reid or not ai_engine._reid.is_available():
+        raise HTTPException(
+            status_code=503,
+            detail="AI STATUS: MODEL UNAVAILABLE — Cross-camera Re-ID model (OSNet) not loaded",
+        )
+
+    # 1. Build the query signature from the source track's person embeddings.
+    source_results = (
+        db.query(AIResult)
+        .filter(
+            AIResult.evidence_id == evidence_id,
+            AIResult.track_id == track_id,
+        )
+        .all()
+    )
+    source_embeddings = [
+        e for e in (_stored_embedding(r) for r in source_results if _is_person(r)) if e is not None
+    ]
+    if not source_embeddings:
+        raise HTTPException(
+            status_code=404,
+            detail="No person Re-ID embeddings found for the source track. "
+            "Re-run analysis with the Re-ID model enabled.",
+        )
+    query_sig = np.mean(np.stack(source_embeddings), axis=0)
+
+    # 2. Gather person detections from OTHER evidence items in the same case.
+    other_evidence_ids = [
+        e.id
+        for e in db.query(Evidence.id)
+        .filter(Evidence.case_id == case_id, Evidence.id != evidence_id)
+        .all()
+    ]
+    if not other_evidence_ids:
+        return {"source_track": track_id, "matches": [], "count": 0,
+                "note": "No other cameras/evidence in this case to search."}
+
+    candidate_results = (
+        db.query(AIResult)
+        .filter(AIResult.evidence_id.in_(other_evidence_ids))
+        .all()
+    )
+
+    # 3. Score the best detection per (evidence, track) so one person on another
+    #    camera collapses to a single ranked candidate.
+    best_by_track: dict[tuple, dict] = {}
+    for r in candidate_results:
+        if not _is_person(r):
+            continue
+        emb = _stored_embedding(r)
+        if emb is None:
+            continue
+        similarity = _cosine(query_sig, emb)
+        if similarity < threshold:
+            continue
+        key = (r.evidence_id, r.track_id or r.id)
+        prev = best_by_track.get(key)
+        if prev is None or similarity > prev["similarity"]:
+            best_by_track[key] = {
+                "candidate_id": r.id,
+                "evidence_id": r.evidence_id,
+                "track_id": r.track_id,
+                "similarity": round(similarity, 4),
+                "timestamp": r.timestamp,
+                "frame": r.frame_number,
+                "confidence": r.confidence,
+                "status": "POSSIBLE_MATCH",
+                "note": "Appearance-based candidate. Does not independently establish identity.",
+            }
+
+    matches = sorted(best_by_track.values(), key=lambda c: c["similarity"], reverse=True)
+    return {
+        "source_track": track_id,
+        "source_evidence": evidence_id,
+        "threshold": threshold,
+        "matches": matches[:50],
+        "count": len(matches),
+    }

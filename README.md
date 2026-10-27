@@ -54,7 +54,7 @@ npm run dev
 
 ### AI Modes & Forensics
 - **Object Detection & Tracking**: Core capabilities are active and `VERIFIED`.
-- **ANPR, Face Search, Re-ID**: Currently marked as `UNAVAILABLE` unless optional deep-learning models (EasyOCR, InsightFace) are manually loaded.
+- **ANPR, Face Search, Cross-Camera Re-ID**: Fully implemented and pluggable. Each reports `AVAILABLE` only when its optional model is present (EasyOCR for ANPR, SFace for face search, **OSNet (`models/osnet_x1_0.onnx`) for cross-camera Re-ID**); otherwise it honestly reports `UNAVAILABLE` and never fabricates a result. Face/Re-ID matches are always labelled `POSSIBLE_MATCH` — appearance similarity does not establish identity.
 - **Video Forensics**: Implements structural FFprobe anomaly detection and frame integrity checks.
 - **Recovery**: Capable of basic container recovery; advanced proprietary `.dav`/`.h264` parsing is deferred.
 

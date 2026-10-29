@@ -17,6 +17,12 @@ class Base(DeclarativeBase):
 
 _is_sqlite = "sqlite" in settings.database_url
 
+# Ensure required storage directories (including the SQLite DB's parent) exist
+# before the engine is created. Importing this module is enough to guarantee the
+# database file can be opened — important for tests and fresh environments (CI)
+# where the storage directory is not checked in.
+settings.ensure_directories()
+
 # Create engine. SAKSHYA is a multi-threaded FastAPI app, so when running on
 # SQLite we allow cross-thread access and tune the connection for concurrency
 # (WAL journaling + a busy timeout) so concurrent readers/writers wait for a
